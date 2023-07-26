@@ -1,12 +1,12 @@
 from elasticsearch import Elasticsearch
 from decouple import config
-
+from datetime import datetime, timedelta
 # Import Deployment Secrets keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
 CLOUD_ID = config("CLOUD_ID")
 INDEX_PATTERN = 'winlogbeat-*'
-es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
+es = Elasticsearch(cloud_id=CLOUD_ID,basic_auth=("elastic",ELASTIC_PASSWORD))
 
 def event_searching(query):
     r = es.search(index=INDEX_PATTERN,query=query)
@@ -53,15 +53,25 @@ if event_4624_rdp != None:
     event = event_4624_rdp
     while event["host"]["ip"][1] != event["source"]["ip"]:
         print(event["source"]["ip"])
-            # find another logon rdp type 10 or 7 in order to follow traces of attacker
+        # timestamp range of 24 hours 
+        timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        min_timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    # find another logon rdp type 10 or 7 in order to follow traces of attacker
         search_query = {
                 "bool":{
                     "must":[
-                        {"match":{"event.code":"4624"}},
-                        
+                        {"match":{"event.code":"4624"}},        
                     ],
                     "filter":[
                         {"term":{"host.ip":event["source"]["ip"]}},
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event["@timestamp"],
+                                "gte":min_timestamp
+                            }
+                            
+                            }
+                        }
                     ],
                     "should":[
                         {"match":{"winlog.event_data.LogonType":"10"}},
@@ -71,9 +81,8 @@ if event_4624_rdp != None:
             }
         event_4624_rdp = event
         event = event_searching(search_query)
-        print(event)
+
         if event == None or event["source"]["domain"] == "-":
-            event=event_4624_rdp
             break
         
 
