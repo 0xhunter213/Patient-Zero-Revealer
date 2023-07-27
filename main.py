@@ -2,7 +2,7 @@ from elasticsearch import Elasticsearch
 from decouple import config
 from datetime import datetime, timedelta
 import re
-
+from argparse import ArgumentParser
 # Import Deployment Secrets keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
@@ -159,6 +159,9 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         return None
 
 if __name__ == "__main__":
+    parser = ArgumentParser(description="Patient Zero Revealer a tool to detect first infected machine\
+                            in the netwrok using Windows Event logs")
+    parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store")
+    parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
     #print(WinRM_connections(user="user-pc1"))
-    print(WinRM_connections(user="user-pc1"))
     print("DONE ")

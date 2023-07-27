@@ -72,8 +72,7 @@ def RDP_ANALYZING(event):
 #                 except:
 #                     pass
 
-filename = "/home/hunter/Documents/PFE/zero_patient/EVTX-to-MITRE-Attack/TA0008-Lateral Movement/T1021.001-Remote Desktop Protocol/ID4688-4778 RDP hijack command execution.evtx"
-filename = "./Security.evtx"
+filename=""# path to use
 
 for event in parse_evtx_to_dict(filename):
     try:
