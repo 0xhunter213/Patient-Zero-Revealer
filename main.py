@@ -1,7 +1,8 @@
 from elasticsearch import Elasticsearch
 from decouple import config
 from datetime import datetime, timedelta
-from elasticsearch_dsl import Search,Q
+import re
+
 # Import Deployment Secrets keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
@@ -9,6 +10,7 @@ CLOUD_ID = config("CLOUD_ID")
 INDEX_PATTERN = 'winlogbeat-*'
 es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 
+# searching for event with query
 def event_searching(query):
     r = es.search(index=INDEX_PATTERN,query=query)
     if r["hits"]["total"]["value"] != 0:
@@ -17,7 +19,7 @@ def event_searching(query):
     else:
         return None
 
-
+# printing style of specific events
 def printing_event(event):
     try:
         print(f'Timestamp        : {event["@timestamp"]}\n\
@@ -34,17 +36,17 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
     # RDP searching query
 
     search_query ={ 
-    "bool":{
-        "must":[
-            {"match":{"event.code":"4624"}},
-        ],
-        "filter":[
-        ],
-        "should":[
-            {"match":{"winlog.event_data.LogonType":"10"}},
-            {"match":{"winlog.event_data.LogonType":"7"}},
-        ]
-        }
+        "bool":{
+            "must":[
+                {"match":{"event.code":"4624"}},
+            ],
+            "filter":[
+            ],
+            "should":[
+                {"match":{"winlog.event_data.LogonType":"10"}},
+                {"match":{"winlog.event_data.LogonType":"7"}},
+            ],
+            }
     }
 
     if user != None:
@@ -86,17 +88,15 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
     '''
     # winrm searching query 
     search_query = {
-        "bool":[
-            {"must":{"event.code":"91"}} # victim machine receved winrm connection
-        ],
-        "filter":[
-            
-        ]
+        "bool":{
+            "must":[{"match":{"event.code":"91"}}],
+            "filter":[],
+        }
     }
     
     if user != None:
         # searching with user name (attacker)
-        search_query["bool"]["filter"].append({"term":{"winlog.event_data.user.name":user}})
+        search_query["bool"]["filter"].append({"term":{"winlog.user.name":user}})
     
     if ip_source != None:
         # adding Ip address source of previous event
@@ -114,16 +114,51 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         }})
 
     event_winrm_rquest = event_searching(query=search_query)
-
     if event_winrm_rquest != None:
-        printing_event(event_winrm_rquest)
-        return event_winrm_rquest
+        # message of event contains ip address of attacker machine
+        source_machine_info = re.search(r'.clientIP:...\)$',event_winrm_rquest["message"])
+        print(event_winrm_rquest)
+        if source_machine_info:
+            # winrm shell was initialized by a machine out of network
+            printing_event(event_winrm_rquest)
+            return event_winrm_rquest
+        else:
+            # winrm was started by a machine within network
+            # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
+
+            timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(minutes=2)
+            timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            print(timestamp)
+            search_query = {
+                "bool":{
+                    "must":[
+                        {"match":{"event.code": "6"}},
+                        #{"match":{"event.action":"WSMan API Initialize"}}
+                    ],
+                    "filter":[
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event_winrm_rquest["@timestamp"],
+                                "gte":timestamp,
+                            }
+                        }}
+                    ]
+                }
+            }
+
+            event_wsman_init = event_searching(query=search_query)
+
+            if event_wsman_init:
+                return event_wsman_init
+            else:
+                print("No WSMan API Initialize event")
+                return None
+
     else:
         print("No WinRM connections with this Paremeters\n")
         return None
 
-print("WinRM Connections\n")
-    # Looking for winrm connections
-
-
-print("DONE ")
+if __name__ == "__main__":
+    #print(WinRM_connections(user="user-pc1"))
+    print(WinRM_connections(user="user-pc1"))
+    print("DONE ")
