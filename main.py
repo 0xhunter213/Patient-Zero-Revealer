@@ -159,9 +159,17 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         return None
 
 if __name__ == "__main__":
+
+    # cli configuration arguments and options for tool usage
     parser = ArgumentParser(description="Patient Zero Revealer a tool to detect first infected machine\
                             in the netwrok using Windows Event logs")
-    parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store")
+    parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store",required=True)
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
+    args = parser.parse_args()
+    user= args.user # username required
+    if args.ip_source: 
+        ip_source = args.ip_source
+    
     #print(WinRM_connections(user="user-pc1"))
+    
     print("DONE ")
