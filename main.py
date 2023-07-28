@@ -39,12 +39,10 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
         "bool":{
             "must":[
                 {"match":{"event.code":"4624"}},
+                {"match":{"winlog.event_data.LogonType":"10" or "7"}},
+                #{"match":{"winlog.event_data.LogonType":"7"}},
             ],
             "filter":[
-            ],
-            "should":[
-                {"match":{"winlog.event_data.LogonType":"10"}},
-                {"match":{"winlog.event_data.LogonType":"7"}},
             ],
             }
     }
@@ -71,7 +69,14 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
     # searching results
     # exisit item with event ID 4624 type 10 searched
     # also we can use timestamp or machine `ip` `name` ...
-
+    # adding a range timestamp to just analysis the last 24 hours events
+    timeline = datetime.now() - timedelta(hours=24)
+    min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+    }}) 
     event_4624_rdp = event_searching(query=search_query)
 
 
@@ -112,6 +117,15 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
                 "gte":min_timestamp,
             }
         }})
+    # adding this line for testing need to just get event of last 24 hours
+
+        timeline = datetime.now() - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+        }})
 
     event_winrm_rquest = event_searching(query=search_query)
     if event_winrm_rquest != None:
@@ -126,7 +140,7 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
             # winrm was started by a machine within network
             # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
 
-            timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(minutes=2)
+            timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
             timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             print(timestamp)
             search_query = {
@@ -138,8 +152,8 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
                     "filter":[
                         {"range":{
                             "@timestamp":{
-                                "lte":event_winrm_rquest["@timestamp"],
-                                "gte":timestamp,
+                                "gte":event_winrm_rquest["@timestamp"],
+                                "lte":timestamp,
                             }
                         }}
                     ]
@@ -167,9 +181,14 @@ if __name__ == "__main__":
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
     args = parser.parse_args()
     user= args.user # username required
-    if args.ip_source: 
-        ip_source = args.ip_source
+    ip_source = args.ip_source # ip source of a machine
     
-    #print(WinRM_connections(user="user-pc1"))
-    
+    # testing RDP events first
+
+    event_rdp = RDP_connections(user=user,ip_source=ip_source)    
+    event_winrm = WinRM_connections(user=user,ip_source=ip_source)
+    print(f"RDP flow:")
+    print(event_rdp)
+    print(f"WinRM flow:")
+    printing_event(event_winrm)
     print("DONE ")
