@@ -88,7 +88,7 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
             }
         }})
     else:
-        # adding a range timestamp to just analysis the last 24 hours events
+        # adding a range timestamp to just analysis the last 48 hours events
         timeline = datetime.now() - timedelta(hours=48)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
@@ -104,13 +104,11 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
 
 
     if event_4624_rdp: 
-        print_event(event_4624_rdp)
         return event_4624_rdp
     else:
         search_query["bool"]["must"][1]= {"match":{"winlog.event_data.LogonType":"7"}}
         event_4624_rdp = event_searching(query=search_query)
         if event_4624_rdp:
-            print_event(event_4624_rdp)
             return event_4624_rdp
         print(f"No RDP connections with this Parameters\n")
         return None
@@ -220,7 +218,6 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
             if event == None:
                 break # Non connections at all
             else:
-                print_event(event)
                 # condition to recover the source mahine 
                 if event["event"]["code"] == "91":
                     source_ip = event["message"].split("clientIP: ")[1][:-1]
@@ -229,12 +226,9 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
         else:
             source_ip = event["source"]["ip"] # source ip address of the source machine
             target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
-            print_event(event)
-    
+
         #@timestamp of the event    
         starting_time = event["@timestamp"]
-        print(target_user)
-        print(starting_time)
         past_event=event
 
     return past_event
@@ -246,11 +240,13 @@ if __name__ == "__main__":
                             in the netwrok using Windows Event logs")
     parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store",required=True)
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
+    parser.add_argument("-t","--timestamp",help="start time of analysing events should be in this format (%Y-%m-%dT%H:%M:%S.%fZ)",action="store")
     args = parser.parse_args()
     user= args.user # username required
     ip_source = args.ip_source # ip source of a machine
-    
+    timestamp = args.timestamp
+    timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     # analyzing events
-    event = patient_zero(user=user)
+    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
     print_event(event)
     print("DONE ")
