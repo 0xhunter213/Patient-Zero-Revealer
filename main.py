@@ -58,10 +58,12 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
 
     search_query ={ 
         "bool":{
+            "should":[                
+                {"match":{"winlog.event_data.LogonType":"10"}},
+                {"match":{"winlog.event_data.LogonType":"7"}},
+            ],
             "must":[
                 {"match":{"event.code":"4624"}},
-                {"match":{"winlog.event_data.LogonType":"10" or "7"}},
-                #{"match":{"winlog.event_data.LogonType":"7"}},
             ],
             "filter":[
             ],
@@ -200,9 +202,38 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
         to get to first machine was infected by attacker
     '''
     # checks all availible intial connections of the user
-    event_rdp = RDP_connections(user=user)
-    if event_rdp:
-        
+    event = True
+    target_user = user
+    source_ip = ip_source
+    starting_time = timestamp
+
+    while event:
+        event = RDP_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+        if event == None:
+            # RDP connection event
+            event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=timestamp)
+            
+            if event == None:
+                break # Non connections at all
+            else:
+                printing_WinRM_event(event)
+                # condition to recover the source mahine 
+                if event["event"]["code"] == "91":
+                    source_ip = event["message"].split("clientIP: ")[1][:-1]
+                    
+                target_user = event["winlog"]["user"]["name"] if event["winlog"]["user"]["name"] != target_user else None # take a username who caused the event from winrm event
+        else:
+            source_ip = event["source"]["ip"] # source ip address of the source machine
+            target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
+            printing_RDP_event(event)
+    
+        #@timestamp of the event    
+        starting_time = event["@timestamp"]
+        print(target_user)
+        print(starting_time)
+        past_event=event
+
+    return past_event
     
 if __name__ == "__main__":
 
@@ -217,14 +248,5 @@ if __name__ == "__main__":
     
     # testing RDP events first
 
-    event_rdp = RDP_connections(user=user,ip_source=ip_source)    
-    event_winrm = WinRM_connections(user=user,ip_source=ip_source)
-    print(f"RDP flow:")
-    printing_RDP_event(event=event_rdp)
-    print(f"WinRM flow:")
-    printing_WinRM_event(event_winrm)
-    if event_rdp:
-        print("follow rdp event")
-    elif event_winrm:
-        print("follow wirm event")
+    print(patient_zero(user=user))
     print("DONE ")
