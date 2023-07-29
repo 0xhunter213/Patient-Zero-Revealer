@@ -86,18 +86,19 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
                 "gte":min_timestamp,
             }
         }})
-
+    else:
+        # adding a range timestamp to just analysis the last 24 hours events
+        timeline = datetime.now() - timedelta(hours=48)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+                "@timestamp":{
+                    "gte":min_timestamp,
+                }
+        }}) 
     # searching results
     # exisit item with event ID 4624 type 10 searched
     # also we can use timestamp or machine `ip` `name` ...
-    # adding a range timestamp to just analysis the last 24 hours events
-    timeline = datetime.now() - timedelta(hours=48)
-    min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-    search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
-            }
-    }}) 
+
     event_4624_rdp = event_searching(query=search_query)
 
 
@@ -198,8 +199,11 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
         analysing different windows events log (rdp,winrm)\
         to get to first machine was infected by attacker
     '''
+    # checks all availible intial connections of the user
+    event_rdp = RDP_connections(user=user)
+    if event_rdp:
+        
     
-
 if __name__ == "__main__":
 
     # cli configuration arguments and options for tool usage
