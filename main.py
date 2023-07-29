@@ -144,7 +144,7 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
             }
         }})
     # adding this line for testing need to just get event of last 24 hours
-
+    else:
         timeline = datetime.now() - timedelta(hours=24)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
@@ -205,6 +205,7 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
     '''
     # checks all availible intial connections of the user
     event = True
+    past_event = None
     target_user = user
     source_ip = ip_source
     starting_time = timestamp
