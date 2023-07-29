@@ -25,7 +25,7 @@ def print_event(event):
         # get the event id to define the structre of the event
         event__code = event["event"]["code"]
 
-        if event__code in [10,7]:
+        if event__code == "4624":
             print(f'''
                     Timestamp               : {event["@timestamp"]}\n\
                     Id                      : {event["user"]["id"]}\n\
@@ -250,5 +250,5 @@ if __name__ == "__main__":
     
     # testing RDP events first
 
-    print(patient_zero(user=user))
+    print_event(patient_zero(user=user))
     print("DONE ")
