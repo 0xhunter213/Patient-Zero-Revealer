@@ -60,12 +60,9 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
 
     search_query ={ 
         "bool":{
-            "should":[                
-                {"match":{"winlog.event_data.LogonType":"10"}},
-                {"match":{"winlog.event_data.LogonType":"7"}},
-            ],
             "must":[
                 {"match":{"event.code":"4624"}},
+                {"match":{"winlog.event_data.LogonType":"10"}}
             ],
             "filter":[
             ],
@@ -106,10 +103,15 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
     event_4624_rdp = event_searching(query=search_query)
 
 
-    if event_4624_rdp != None: 
+    if event_4624_rdp: 
         print_event(event_4624_rdp)
         return event_4624_rdp
     else:
+        search_query["bool"]["must"][1]= {"match":{"winlog.event_data.LogonType":"7"}}
+        event_4624_rdp = event_searching(query=search_query)
+        if event_4624_rdp:
+            print_event(event_4624_rdp)
+            return event_4624_rdp
         print(f"No RDP connections with this Parameters\n")
         return None
 
@@ -248,7 +250,7 @@ if __name__ == "__main__":
     user= args.user # username required
     ip_source = args.ip_source # ip source of a machine
     
-    # testing RDP events first
-
-    print_event(patient_zero(user=user))
+    # analyzing events
+    event = patient_zero(user=user)
+    print_event(event)
     print("DONE ")
