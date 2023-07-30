@@ -223,7 +223,7 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                 if event["event"]["code"] == "91":
                     source_ip = event["message"].split("clientIP: ")[1][:-1]
 
-                target_user = event["winlog"]["user"]["name"] if event["winlog"]["user"]["name"] != target_user else None # take a username who caused the event from winrm event
+                target_user = event["winlog"]["user"]["name"] # take a username who caused the event from winrm event
         else:
             source_ip = event["source"]["ip"] # source ip address of the source machine
             target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
