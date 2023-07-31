@@ -11,9 +11,14 @@ INDEX_PATTERN = 'winlogbeat-*'
 es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 
 # searching for event with query
-def event_searching(query):
+def event_searching(query,all=False):
     r = es.search(index=INDEX_PATTERN,query=query)
     if r["hits"]["total"]["value"] != 0:
+        if all:
+            # return all the events 
+            events = event=r["hits"]["hits"]
+            return events
+        # return only the last events
         event=r["hits"]["hits"][0]["_source"]
         return event
     else:
