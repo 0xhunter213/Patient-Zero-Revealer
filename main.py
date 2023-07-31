@@ -197,7 +197,28 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         return None
 
 #TODO: wsmi / ssh analysing events
-
+def ssh_connections(user=None,ip_source=None,timestamp=None):
+    '''
+        ssh connection events
+        event id is 4 also sysmon there is an event with id 4 so we diffrence between them with message item
+    '''
+    # searching with event.code = "4" and an accepting connection message from openssh
+    search_query = {
+        "bool":{
+            "must":[
+                {"match":{"event.code":"4"}},
+                {"match":{"message":"sshd: Accepted password for*"}}
+            ],
+            "filter":[]
+        }
+    }
+    event_ssh = event_searching(search_query)
+    
+    if event_ssh:
+        return event_ssh
+    else:
+        return None
+    
 def patient_zero(user=None,ip_source=None,timestamp=None):
     '''
         analysing different windows events log (rdp,winrm)\
