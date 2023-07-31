@@ -12,7 +12,7 @@ es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 
 # searching for event with query
 def event_searching(query,all=False):
-    r = es.search(index=INDEX_PATTERN,query=query)
+    r = es.search(index=INDEX_PATTERN,query=query,sort={"@timestamp":{"order":"desc"}})
     if r["hits"]["total"]["value"] != 0:
         if all:
             # return all the events 
@@ -212,11 +212,33 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
         "bool":{
             "must":[
                 {"match":{"event.code":"4"}},
-                {"match":{"message":"sshd: Accepted password for*"}}
+                {"match":{"winlog.channel": "OpenSSH/Operational"}},
+               
             ],
-            "filter":[]
+            "filter":[ {"regexp":{"winlog.event_data.payload":"Accepted password for .*"}}],
         }
     }
+    
+    if timestamp != None:
+        # searching with timestamp range
+        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "lte":timestamp,
+                "gte":min_timestamp,
+            }
+        }})
+    else:
+        # adding this line for testing need to just get event of last 24 hours
+        timeline = datetime.now() - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+        }})
+
     event_ssh = event_searching(search_query)
     
     if event_ssh:
@@ -274,6 +296,9 @@ if __name__ == "__main__":
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     # analyzing events
-    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    print_event(event)
+    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
+    # print_event(event)
+
+    event=ssh_connections()
+    print(event)
     print("DONE ")
