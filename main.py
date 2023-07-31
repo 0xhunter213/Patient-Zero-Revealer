@@ -53,7 +53,20 @@ def print_event(event):
                     Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
                     Connection              : {event["winlog"]["event_data"]["connection"]}\n\
             ''')
+        elif event__code == "4":
+            print(f'''
+                    Timestamp               : {event["@timestamp"]}\n\
+                    Id                      : {event["winlog"]["user"]["identifier"]}\n\
+                    Username                : {event["winlog"]["user"]["name"]}\n\
+                    Domaine                 : {event["winlog"]["user"]["domain"]}
+                    Host Name               : {event["host"]["hostname"]}\n\
+                    Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
+                    Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
+                    Information             : {event["message"]}\n\
+            ''')
+        
         # more events ? ...
+
     except:
         print(event)
 
@@ -296,9 +309,6 @@ if __name__ == "__main__":
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     # analyzing events
-    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    # print_event(event)
-
-    event=ssh_connections()
-    print(event)
+    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
+    print_event(event)
     print("DONE ")
