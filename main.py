@@ -278,7 +278,16 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
             event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=timestamp)
             
             if event == None:
-                break # Non connections at all
+                event = ssh_connections()
+                if event:
+                    message = event["message"]
+                    frm_idx = message.index(" from")
+                    prt_idx = message.index(" port")
+
+                    target_user = message[28,frm_idx]
+                    ip_source = message[frm_idx:prt_idx]
+                else:
+                    break
             else:
                 # condition to recover the source mahine 
                 if event["event"]["code"] == "91":
