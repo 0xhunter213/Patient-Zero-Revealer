@@ -231,6 +231,14 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
         }
     }
     
+    if user != None:
+        # searching with user name (attacker)
+        search_query["bool"]["filter"].append({"term":{"winlog.user.name":user}})
+    
+    if ip_source != None:
+        # adding Ip address source of previous event
+        search_query["bool"]["filter"].append({"term":{"host.ip":ip_source}})
+    
     if timestamp != None:
         # searching with timestamp range
         timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
@@ -241,8 +249,8 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
                 "gte":min_timestamp,
             }
         }})
+    # adding this line for testing need to just get event of last 24 hours
     else:
-        # adding this line for testing need to just get event of last 24 hours
         timeline = datetime.now() - timedelta(hours=24)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
@@ -250,6 +258,7 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
                 "gte":min_timestamp,
             }
         }})
+
 
     event_ssh = event_searching(search_query)
     
