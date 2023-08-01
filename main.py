@@ -11,8 +11,8 @@ INDEX_PATTERN = 'winlogbeat-*'
 es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 
 # searching for event with query
-def event_searching(query,all=False):
-    r = es.search(index=INDEX_PATTERN,query=query,sort={"@timestamp":{"order":"desc"}})
+def event_searching(query,sort={"@timestamp":{"order":"desc"}},all=False):
+    r = es.search(index=INDEX_PATTERN,query=query,sort=sort)
     if r["hits"]["total"]["value"] != 0:
         if all:
             # return all the events 
@@ -225,10 +225,9 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
         "bool":{
             "must":[
                 {"match":{"event.code":"4"}},
-                {"match":{"winlog.channel": "OpenSSH/Operational"}},
-               
+                {"match_phrase_prefix":{"message":"sshd: Accepted password for .*"}}
             ],
-            "filter":[ {"regexp":{"winlog.event_data.payload":"Accepted password for .*"}}],
+            "filter":[ ],
         }
     }
     
@@ -275,10 +274,10 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
         event = RDP_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
         if event == None:
             # RDP connection event
-            event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=timestamp)
+            event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
             
             if event == None:
-                event = ssh_connections()
+                event = ssh_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
                 if event:
                     message = event["message"]
                     frm_idx = message.index(" from")
