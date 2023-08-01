@@ -227,13 +227,14 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
                 {"match":{"event.code":"4"}},
                 {"match_phrase_prefix":{"message":"sshd: Accepted password for .*"}}
             ],
-            "filter":[ ],
+            "filter":[],
         }
     }
     
     if user != None:
         # searching with user name (attacker)
-        search_query["bool"]["filter"].append({"term":{"winlog.user.name":user}})
+        # ssh query diffrenete user with mentioned in message as he made a succeful connection
+        search_query["bool"]["must"][1]["match_phrase_prefix"]["message"] = f"sshd: Accepted password for {user} .*"
     
     if ip_source != None:
         # adding Ip address source of previous event
