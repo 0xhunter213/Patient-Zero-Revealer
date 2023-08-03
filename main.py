@@ -8,6 +8,7 @@ import argparse
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
 CLOUD_ID = config("CLOUD_ID")
 INDEX_PATTERN = 'winlogbeat-*'
+
 es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 
 # searching for event with query
@@ -16,7 +17,7 @@ def event_searching(query,sort={"@timestamp":{"order":"desc"}},all=False):
     if r["hits"]["total"]["value"] != 0:
         if all:
             # return all the events 
-            events = event=r["hits"]["hits"]
+            events = [ evt["_source"] for evt in r["hits"]["hits"]] # return only _source item from each event in the list
             return events
         # return only the last events
         event=r["hits"]["hits"][0]["_source"]
@@ -92,7 +93,7 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
 
     if user != None:
         # searching with user name (attacker)
-        search_query["bool"]["filter"].append({"term":{"winlog.event_data.TargetUserName":user}})
+        search_query["bool"]["must"].append({"match":{"winlog.event_data.TargetUserName":user}})
     
     if ip_source != None:
         # adding Ip address source of previous event
@@ -148,7 +149,7 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
     
     if user != None:
         # searching with user name (attacker)
-        search_query["bool"]["filter"].append({"term":{"winlog.user.name":user}})
+        search_query["bool"]["must"].append({"match":{"winlog.user.name":user}})
     
     if ip_source != None:
         # adding Ip address source of previous event
@@ -218,7 +219,7 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         return None
 
 #TODO: wsmi / ssh analysing events
-def ssh_connections(user=None,ip_source=None,timestamp=None):
+def SSH_connections(user=None,ip_source=None,timestamp=None):
     '''
         ssh connection events
         event id is 4 also sysmon there is an event with id 4 so we diffrence between them with message item
@@ -270,7 +271,115 @@ def ssh_connections(user=None,ip_source=None,timestamp=None):
         return event_ssh
     else:
         return None
+
+def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
+    '''
+    Detection of a potential PsExec connection based on the usage of SMB\
+    This function looks for all events with ID 7045 (service installed) and events that came after event 3 with\
+    network protocol "microsoft-ds" (SMB)Additionally, it checks for event ID 4624 with type 3, which indicates \
+    that PsExec or SMBExec was used to log in to this machine.
+    '''
+    # looking for sequence of events 3,4624,4672,7045
+    # identifing any 
+    if user == None:
+        # need user name to search for service that he may have installed
+        print("USER IS EMPTY")
+        return None
     
+    # search for the serveci event id == 7045
+    search_query ={
+        "bool":{
+            "must":[
+                {"match":{"event.code":"7045"}}, 
+                {"match":{"winlog.user.name":user}},
+            ],
+            "filter":[]
+            }
+    }
+
+    if ip_source != None:
+        # adding Ip address source of previous event
+        search_query["bool"]["filter"].append({"term":{"host.ip":ip_source}})
+    
+    if timestamp != None:
+        # searching with timestamp range
+        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "lte":timestamp,
+                "gte":min_timestamp,
+            }
+        }})
+    # adding this line for testing need to just get event of last 24 hours
+    else:
+        timeline = datetime.now() - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+        }})
+
+    events_sercice_installed = event_searching(search_query,all=True)
+    returned_event = None
+    if events_sercice_installed:
+        for event in events_sercice_installed:
+            backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
+            backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            machine_ip = event["host"]["ip"][1]
+            search_query_event_4624 = {
+                "bool":{
+                    "must":[
+                    {"match":{"event.code":"4624"}},
+                    {"match":{"user.name":user}},
+                    {"match":{"host.ip":machine_ip}},
+                    {"match":{"winlog.event_data.LogonType":"3"}}
+                    ],
+                    # time range of 0 to 5 seconds, this ensures that the events are sequenced consecutively.
+                    "filter":[
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event["@timestamp"],
+                                "gt":backwarding_timestamp
+                            }
+                        }}
+                    ]
+            }
+            }
+            # smb connection on the machie
+            search_query_event_3 = {
+                "bool":{
+                    "must":[
+                        {"match":{"event.code":"3"}},
+                        {"match":{"network.protocol":"microsoft-ds"}},
+                        {"match":{"related.ip":machine_ip}}
+                    ],
+                    "filter":[
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event["@timestamp"],
+                                "gte":backwarding_timestamp
+                            }
+                        }}
+                    ]
+                }
+            }
+            # with the searching query above now searching for 4624 event and 3 
+            event_4624 = event_searching(search_query_event_4624)
+            event_3 = event_searching(search_query_event_3)
+
+            if event_3 and event_4624:
+                return event_4624 # return login event bcz it contain all infos of user
+            elif event_4624:
+                #Save the login event because sometimes event 3 may fall outside our specified time range. Not sure here
+                returned_event = event_4624 
+        
+        # if we dont find any correct sequence with return a valid 4624 event came before 7045
+        return returned_event 
+    else:
+        return None
+
 def patient_zero(user=None,ip_source=None,timestamp=None):
     '''
         analysing different windows events log (rdp,winrm)\
@@ -281,7 +390,7 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
     past_event = None
     target_user = user
     source_ip = ip_source
-    starting_time = timestamp
+    starting_time = timestamp  
 
     while event:
         event = RDP_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
@@ -290,7 +399,7 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
             event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
             
             if event == None:
-                event = ssh_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                event = SSH_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
                 if event:
                     message = event["message"]
                     frm_idx = message.index(" from")
@@ -299,12 +408,14 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                     target_user = message[28,frm_idx]
                     ip_source = message[frm_idx:prt_idx]
                 else:
+                    # psexec and smbexec detection
+                    
                     break
             else:
-                # condition to recover the source mahine 
+                # condition to recover the source machine 
                 if event["event"]["code"] == "91":
                     source_ip = event["message"].split("clientIP: ")[1][:-1]
-
+    
                 target_user = event["winlog"]["user"]["name"] # take a username who caused the event from winrm event
         else:
             source_ip = event["source"]["ip"] # source ip address of the source machine
@@ -331,5 +442,5 @@ if __name__ == "__main__":
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     # analyzing events
     event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    print_event(event)
+    print_event(event)        
     print("DONE ")
