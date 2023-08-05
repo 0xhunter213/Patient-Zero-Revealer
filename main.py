@@ -218,7 +218,6 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
         print("No WinRM connections with this Paremeters\n")
         return None
 
-#TODO: wsmi / ssh analysing events
 def SSH_connections(user=None,ip_source=None,timestamp=None):
     '''
         ssh connection events
@@ -313,7 +312,7 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
         }})
     # adding this line for testing need to just get event of last 24 hours
     else:
-        timeline = datetime.now() - timedelta(hours=72)
+        timeline = datetime.now() - timedelta(hours=24)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
@@ -328,14 +327,12 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
             backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
             backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             machine_ip_dest = event["host"]["ip"][1] # ip address of destination machine target
-            machine_ip_src = event["source"]["ip"] # ip address of source attacker machine
             search_query_event_4624 = {
                 "bool":{
                     "must":[
                     {"match":{"event.code":"4624"}},
                     {"match":{"user.name":user}},
                     {"match":{"host.ip":machine_ip_dest}},
-                    {"match":{"source.ip":machine_ip_src}},
                     {"match":{"winlog.event_data.LogonType":"3"}}
                     ],
                     # time range of 0 to 5 seconds, this ensures that the events are sequenced consecutively.
@@ -356,7 +353,6 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
                         {"match":{"event.code":"3"}},
                         {"match":{"network.protocol":"microsoft-ds"}},
                         {"match":{"related.ip":machine_ip_dest}},
-                        {"match":{"source.ip":machine_ip_src}}
                     ],
                     "filter":[
                         {"range":{
@@ -523,7 +519,13 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                         target_user = event["winlog"]["event_data"]["TargetUserName"]
                     else:
                         print("No SMB connections with this Parameters")
-                        break
+                        event = WMI_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                        if event:
+                            source_ip =event["source"]["ip"]
+                            target_user = event["winlog"]["event_data"]["TargetUserName"]
+                        else:
+                            print("No WMI connections with this Parameters")
+                            break
             else:
                 # condition to recover the source machine 
                 if event["event"]["code"] == "91":
@@ -553,8 +555,7 @@ if __name__ == "__main__":
     ip_source = args.ip_source # ip source of a machine
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
-    # analyzing events
-    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    # print_event(event)        
-    print(WMI_connections(user=user))
+    #analyzing events
+    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
+    print_event(event)
     print("DONE ")
