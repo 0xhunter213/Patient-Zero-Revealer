@@ -313,7 +313,7 @@ def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
         }})
     # adding this line for testing need to just get event of last 24 hours
     else:
-        timeline = datetime.now() - timedelta(hours=24)
+        timeline = datetime.now() - timedelta(hours=72)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
@@ -408,9 +408,15 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                     target_user = message[28,frm_idx]
                     ip_source = message[frm_idx:prt_idx]
                 else:
+                    print("No SSH connections with this Parameters")
                     # psexec and smbexec detection
-                    
-                    break
+                    event = PSSMBexec_Connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                    if event:
+                        source_ip =event["source"]["ip"]
+                        target_user = event["winlog"]["event_data"]["TargetUserName"]
+                    else:
+                        print("No SMB connections with this Parameters")
+                        break
             else:
                 # condition to recover the source machine 
                 if event["event"]["code"] == "91":
