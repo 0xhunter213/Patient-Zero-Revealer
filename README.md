@@ -8,5 +8,5 @@ Detection of the first infected Windows machine in the network using event logs
 
 ### Events used to Detect WMIexec utilization
 
-- microsoft-ds protocol intial connection detect event id 3 , network protocol "microsoft-ds" then "epmap"
+- microsoft-ds followed by epmap intial connection detect event id 3 "epmap"
 - the same protocol port will establish a logon event 4624

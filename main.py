@@ -272,7 +272,7 @@ def SSH_connections(user=None,ip_source=None,timestamp=None):
     else:
         return None
 
-def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
+def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
     '''
     Detection of a potential PsExec connection based on the usage of SMB\
     This function looks for all events with ID 7045 (service installed) and events that came after event 3 with\
@@ -280,11 +280,11 @@ def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
     that PsExec or SMBExec was used to log in to this machine.
     '''
     # looking for sequence of events 3,4624,4672,7045
-    # identifing any 
-    if user == None:
-        # need user name to search for service that he may have installed
-        print("USER IS EMPTY")
-        return None
+    # need argument for searching cause it possible there's a lot of 7045
+    # so need to specify the search
+
+    #user is required arg    
+    assert user
     
     # search for the serveci event id == 7045
     search_query ={
@@ -327,13 +327,15 @@ def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
         for event in events_sercice_installed:
             backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
             backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            machine_ip = event["host"]["ip"][1]
+            machine_ip_dest = event["host"]["ip"][1] # ip address of destination machine target
+            machine_ip_src = event["source"]["ip"] # ip address of source attacker machine
             search_query_event_4624 = {
                 "bool":{
                     "must":[
                     {"match":{"event.code":"4624"}},
                     {"match":{"user.name":user}},
-                    {"match":{"host.ip":machine_ip}},
+                    {"match":{"host.ip":machine_ip_dest}},
+                    {"match":{"source.ip":machine_ip_src}},
                     {"match":{"winlog.event_data.LogonType":"3"}}
                     ],
                     # time range of 0 to 5 seconds, this ensures that the events are sequenced consecutively.
@@ -353,7 +355,8 @@ def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
                     "must":[
                         {"match":{"event.code":"3"}},
                         {"match":{"network.protocol":"microsoft-ds"}},
-                        {"match":{"related.ip":machine_ip}}
+                        {"match":{"related.ip":machine_ip_dest}},
+                        {"match":{"source.ip":machine_ip_src}}
                     ],
                     "filter":[
                         {"range":{
@@ -379,6 +382,110 @@ def PSSMBexec_Connections(user=None,ip_source=None,timestamp=None):
         return returned_event 
     else:
         return None
+def WMI_connections(user=None,ip_source=None,timestamp=None):
+    """
+        Detection utilization of wmiexec from impacket tool kit in the network\
+        using event id 3,4672,4624
+    """
+    assert user
+    
+    # first find epmap connection
+    search_query = {
+        "bool":{
+            "must":[
+                {"match":{"event.code":"3"}},
+                {"match":{"network.protocol":"epmap"}}
+            ],
+            "filter":[]
+        }
+    }
+
+    if ip_source != None:
+        # adding Ip address source of previous event
+        search_query["bool"]["filter"].append({"term":{"host.ip":ip_source}})
+
+    if timestamp != None:
+        # searching with timestamp range
+        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "lte":timestamp,
+                "gte":min_timestamp,
+            }
+        }})
+    # adding this line for testing need to just get event of last 24 hours
+    else:
+        timeline = datetime.now() - timedelta(hours=72)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+        }})
+
+    event_epmap = event_searching(search_query)
+    # if epmap exist we look for 4624 forward and event id 3 backward by 5 seconds range and comparing source port from two events
+    if event_epmap:
+        machine_ip_dest = event_epmap["host"]["ip"][1] # ip address of destination machine target
+        machine_ip_src = event_epmap["source"]["ip"] # ip address of source attacker machine
+        # delta time range used for searching adding 1 second to epmap event bcz logon happening after it
+        delta_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(seconds=1)
+        delta_timestamp_4624 = delta_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # search query for 4624 with user parmaters
+        search_query_4624={
+            "bool":{
+                "must":[
+                    {"match":{"event.code":"4624"}},
+                    {"match":{"winlog.event_data.TargetUserName":user}},
+                    {"match":{"source.ip":machine_ip_src}},
+                    {"match":{"host.ip":machine_ip_dest}}
+                ],
+                "filter":[
+                    {"range":{
+                        "@timestamp":{
+                            "lte":delta_timestamp_4624,
+                            "gt":event_epmap["@timestamp"] # range time bigger then event epmap timestamp and less then it adding 1 second
+                        }
+                    }}
+                ]
+            }
+        }
+        event_4624 = event_searching(search_query_4624)
+        #delta time range substration of 1 second bcz SMB connection heppening before it
+        backwarding_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=1)
+        backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # event id 3
+        search_query_3 = {
+            "bool":{
+                    "must":[
+                        {"match":{"event.code":"3"}},
+                        {"match":{"network.protocol":"microsoft-ds"}},
+                        {"match":{"related.ip":machine_ip_dest}},
+                        {"match":{"source.ip":machine_ip_src}}
+                    ],
+                    "filter":[
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event_epmap["@timestamp"],
+                                "gte":backwarding_timestamp
+                            }
+                        }}
+                    ]
+                }
+        }
+        
+        event_3 = event_searching(search_query_3)
+        if event_3:
+            return event_4624
+        else:
+            print("[X] No event 3 but there is 4624 events")
+            print_event(event_4624) # if there was a problem print event 4624 
+            return None
+    else:
+        return None
+
+
 
 def patient_zero(user=None,ip_source=None,timestamp=None):
     '''
@@ -410,7 +517,7 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                 else:
                     print("No SSH connections with this Parameters")
                     # psexec and smbexec detection
-                    event = PSSMBexec_Connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                    event = PSSMBexec_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
                     if event:
                         source_ip =event["source"]["ip"]
                         target_user = event["winlog"]["event_data"]["TargetUserName"]
@@ -447,6 +554,7 @@ if __name__ == "__main__":
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     # analyzing events
-    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    print_event(event)        
+    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
+    # print_event(event)        
+    print(WMI_connections(user=user))
     print("DONE ")
