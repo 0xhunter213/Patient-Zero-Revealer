@@ -1,5 +1,10 @@
-#
-from Elk import timestamp_delta,timestamp_add,event_searching
+# detection of utilization of smbexec.py and psexec.py from impacket
+# the detection based on following windows events log the two tools use smb protocols 
+# then insall a service which run cmd so the function look for event id 7045 service installed
+# then check if there was a smb connection before it and after that event id logon 4624 type 3
+# the exists of this sequence of events mean there was an utilization of those funcitons on the network
+
+from Elk import timestamp_delta,event_searching
 
 def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     '''
