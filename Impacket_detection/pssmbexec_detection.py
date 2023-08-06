@@ -1,6 +1,5 @@
 #
-from ..main import event_searching
-
+from Elk import timestamp_delta
 
 def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     '''
@@ -37,12 +36,11 @@ def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
+                "gte":tim,
             }
         }})
     # adding this line for testing need to just get event of last 24 hours
