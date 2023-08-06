@@ -1,5 +1,5 @@
 #
-from Elk import timestamp_delta
+from Elk import timestamp_delta,timestamp_add,event_searching
 
 def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     '''
@@ -36,20 +36,21 @@ def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":tim,
+                "gte":timestamp_delta(timestamp,hours=24),
             }
         }})
     # adding this line for testing need to just get event of last 24 hours
     else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # timeline = datetime.now() - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
-                "gte":min_timestamp,
+                "gte":timestamp_delta(hours=24),
             }
         }})
 
@@ -57,8 +58,9 @@ def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
     returned_event = None
     if events_sercice_installed:
         for event in events_sercice_installed:
-            backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
-            backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            # backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
+            # backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            backwarding_timestamp = timestamp_delta(event["@timestamp"],seconds=5)
             machine_ip_dest = event["host"]["ip"][1] # ip address of destination machine target
             search_query_event_4624 = {
                 "bool":{
