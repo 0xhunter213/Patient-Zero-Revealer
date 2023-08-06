@@ -420,7 +420,7 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
         }})
     # adding this line for testing need to just get event of last 24 hours
     else:
-        timeline = datetime.now() - timedelta(hours=72)
+        timeline = datetime.now() - timedelta(hours=24)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
@@ -527,7 +527,7 @@ def Interactive_login(user=None,timestamp=None):
         }})
     # adding this line for testing need to just get event of last 24 hours
     else:
-        timeline = datetime.now() - timedelta(hours=72)
+        timeline = datetime.now() - timedelta(hours=24)
         min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
@@ -539,7 +539,6 @@ def Interactive_login(user=None,timestamp=None):
     if event:
         return event
     else:
-        print("No interactive login with this parameters")
         return None
 
 def patient_zero(user=None,ip_source=None,timestamp=None):
@@ -584,7 +583,13 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                             target_user = event["winlog"]["event_data"]["TargetUserName"]
                         else:
                             print("No WMI connections with this Parameters")
-                            break
+                            event = Interactive_login(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                            if event:
+                                source_ip =event["source"]["ip"]
+                                target_user = event["winlog"]["event_data"]["TargetUserName"]
+                            else:
+                                print("No Interactive login with this Parameters")
+                                break
             else:
                 # condition to recover the source machine 
                 if event["event"]["code"] == "91":
