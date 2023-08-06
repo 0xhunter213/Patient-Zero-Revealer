@@ -283,7 +283,11 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
     # so need to specify the search
 
     #user is required arg    
-    assert user
+    try:
+        assert user
+    except AssertionError:
+        print("[X] username required !")
+        return None
     
     # search for the serveci event id == 7045
     search_query ={
@@ -383,7 +387,11 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
         Detection utilization of wmiexec from impacket tool kit in the network\
         using event id 3,4672,4624
     """
-    assert user
+    try:
+        assert user
+    except AssertionError:
+        print("[X] username required !")
+        return None
     
     # first find epmap connection
     search_query = {
@@ -481,7 +489,58 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
     else:
         return None
 
+def Interactive_login(user=None,timestamp=None):
+    """
+        detection of logon event id 4624 type 2 for interactive login
+    """
+    try:
+        assert user
+    except AssertionError:
+        print("[X] username required !")
+        return None
+    
+    search_query = {
+        "bool":{
+            "must":[
+                {"match":{"event.code":"4624"}},
+                {"match":{"winlog.event_data.LogonType":"2"}},
+                {"match":{"user.name":user}},
+                {"match":{"event.outcome":"success"}},
+                {"match":{"source.ip":"127.0.0.1"}}
+            ],
+            "filter":[]
+        }
+    }
+    if ip_source != None:
+        # adding Ip address source of previous event
+        search_query["bool"]["filter"].append({"term":{"host.ip":ip_source}})
 
+    if timestamp != None:
+        # searching with timestamp range
+        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "lte":timestamp,
+                "gte":min_timestamp,
+            }
+        }})
+    # adding this line for testing need to just get event of last 24 hours
+    else:
+        timeline = datetime.now() - timedelta(hours=72)
+        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        search_query["bool"]["filter"].append({"range":{
+            "@timestamp":{
+                "gte":min_timestamp,
+            }
+        }})
+
+    event = event_searching(search_query)
+    if event:
+        return event
+    else:
+        print("No interactive login with this parameters")
+        return None
 
 def patient_zero(user=None,ip_source=None,timestamp=None):
     '''
