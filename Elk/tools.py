@@ -1,5 +1,5 @@
-# connection module for diffrent type of connnection to elk stack 
-# elastic search cloud connection and elastic search self host server connection 
+#Connection module for different types of connections to the ELK stack.
+#Includes Elastic Search Cloud connection and Elastic Search self-hosted server connection.
 
 from elasticsearch import Elasticsearch
 from decouple import config

@@ -1,6 +1,6 @@
-# here pzero function (main) will start searching by username or ip address and use timestamp
-# then will follow trace of events depending on user or ip address of source till get to an ip
-# address from out of netwrok or interactive logon
+# here pzero will start searching using a username or IP address and utilize timestamps
+#It will then trace events depending on the user or source IP address until 
+#it reaches an IP address that is outside the network or an interactive logon
 
 from Impacket_detection import *
 from Elk import *
