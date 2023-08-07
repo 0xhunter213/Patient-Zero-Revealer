@@ -140,4 +140,5 @@ if __name__ == "__main__":
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
 
-    pzero_machine_infos = main(user=user,ip_source=ip_source,timestamp=timestamp)    
+    pzero_machine_infos = main(user=user,ip_source=ip_source,timestamp=timestamp)
+    print_machine_infos(pzero_machine_infos)
