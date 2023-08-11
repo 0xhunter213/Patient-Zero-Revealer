@@ -2,10 +2,19 @@ import React from 'react'
 import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col} from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+
+
 export default function SearchEvents({modal,toggle,props}) {
   return (
     <Modal isOpen={modal} toggle={toggle} {...props} fullscreen={"lg"} size='lg'> 
-    <ModalHeader toggle={toggle}>Event ID Search</ModalHeader>
+    <ModalHeader 
+      toggle={toggle} 
+      style={{
+        "color":"#0457A6",
+      }}
+    >
+    Events ID Search
+    </ModalHeader>
     <ModalBody>
         <Form>
             <FormGroup row>
