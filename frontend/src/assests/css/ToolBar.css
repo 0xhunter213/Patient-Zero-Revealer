@@ -1,13 +1,22 @@
 .toolbar{
     align-items: center;
-    width: 50%;
-    height: auto;
+    width: 40%;
+    height: 90px;
     position: absolute;
-    top: 90%;
+    top: 85%;
     background-color: white;
-    padding: 20px;
+    padding: 30px;
     border-radius: 20px;
     display: flex;
     justify-content: space-around;
+    border: 2px solid #07539D;
 }
 
+.toolbar div{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+}
