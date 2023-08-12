@@ -26,7 +26,7 @@ export default function ElasticConnection({modal,toggle,props}) {
                 <Input
                     id="cloudid"
                     name="Cloud"
-                    placeholder="Cloud Id for instance"
+                    placeholder="Cloud Id or API key for elasticsearch server"
                     type="Text"
                 />
                 </Col>
@@ -58,7 +58,7 @@ export default function ElasticConnection({modal,toggle,props}) {
             <Input
             id="password"
             name="Password"
-            placeholder="elasticsearch user password"
+            placeholder="Elasticsearch user password"
             type="password"
             />
             </Col>

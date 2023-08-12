@@ -68,7 +68,7 @@ export default function PatientZero({modal,toggle,props}) {
     </ModalBody>
     <ModalFooter>
       <Button color='primary' onClick={toggle} outline>
-        Reveal
+        Detect
       </Button>{' '}
       <Button color="danger" onClick={toggle} outline>
         Cancel
