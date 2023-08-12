@@ -3,3 +3,14 @@
     flex-direction: row;
     justify-content: flex-end;
 }
+.informations{
+    position: absolute;
+    top: 40%;
+    left: 10px;
+}
+.listInfos{
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+}

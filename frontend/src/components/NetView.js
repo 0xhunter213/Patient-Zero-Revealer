@@ -3,11 +3,21 @@ import Network from "react-graph-vis";
 import "../assests/css/NetView.css"
 import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
-export default function NetView(props) {
+export default function NetView({selected,setSelected,props}) {
     const graphRef = useRef(null);
     const [datas, setDatas] = useState("--");
+    console.log("FROM NETVIEW COMPENENT: ",selected);
     const _data = {
       nodes: [
+        {
+          id:"elastic",
+          shape:"image",
+          label:"elastic",
+          title:"elastic",
+          image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
+          size:40,
+        }
+        ,
         {
           id: "MACHINE0",
           color: "blue",
@@ -17,6 +27,11 @@ export default function NetView(props) {
           image:
             "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
           size: 40,
+          ip:"10.10.14.34",
+          build:"19.345",
+          os:"Windows 10",
+          domain:"$MACHINE0",
+
 
         },
         {
@@ -28,13 +43,20 @@ export default function NetView(props) {
           image:
             "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
           size: 40,
-
+          ip:"10.10.14.35",
+          build:"19.391",
+          os:"Windows 10",
+          domain:"$MACHINE1",
+          
         },
   
       ],
       edges: [
         { from: "MACHINE0", to: "MACHINE1", color: "red" },
         { from: "MACHINE1", to: "MACHINE0", color: "red" },
+        { from: "MACHINE0", to: "elastic", color: "green" },
+        { from: "MACHINE1", to: "elastic", color: "green" },
+      
       ]
     };
   
@@ -117,8 +139,12 @@ export default function NetView(props) {
       console.log("click event is happened");
       console.log("click event is happened in handlenode click");
       console.log(event);
-      setDatas(event.nodes[0]);
-    };
+      if(event.nodes[0]){
+        setSelected(data.nodes.find(({id})=> id === event.nodes[0]));
+      }else{
+        setSelected(false)
+      }
+      };
   
     // Function to zoom out
     const handleZoomOut = () => {
