@@ -11,7 +11,7 @@ def timestamp_delta(timestamp=None,hours=0,minutes=0,seconds=0):
     """
 
     if timestamp == None:
-        timestamp = datetime.now()
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=hours,minutes=minutes,seconds=seconds)
     min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -24,7 +24,7 @@ def timestamp_add(timestamp=None,hours=0,minutes=0,seconds=0):
     """
 
     if timestamp == None:
-        timestamp = datetime.now()
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(hours=hours,minutes=minutes,seconds=seconds)
     min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")

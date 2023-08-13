@@ -75,13 +75,13 @@ def main(user=None,ip_source=None,timestamp=None):
     starting_time = timestamp  
 
     while event:
-        event = rdp_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+        event = rdp_detection.RDP_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
         if event == None:
             # RDP connection event
-            event = winrm_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+            event = winrm_detection.WinRM_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
             
             if event == None:
-                event = ssh_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                event = ssh_detection.SSH_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
                 if event:
                     message = event["message"]
                     frm_idx = message.index(" from")
@@ -92,13 +92,13 @@ def main(user=None,ip_source=None,timestamp=None):
                 else:
                     print("No SSH connections with this Parameters")
                     # psexec and smbexec detection
-                    event = pssmbexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                    event = pssmbexec_detection.PSSMBexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
                     if event:
                         source_ip =event["source"]["ip"]
                         target_user = event["winlog"]["event_data"]["TargetUserName"]
                     else:
                         print("No SMB connections with this Parameters")
-                        event = wmiexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                        event = wmiexec_detection.WMIexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
                         if event:
                             source_ip =event["source"]["ip"]
                             target_user = event["winlog"]["event_data"]["TargetUserName"]
@@ -142,3 +142,4 @@ if __name__ == "__main__":
 
     pzero_machine_infos = main(user=user,ip_source=ip_source,timestamp=timestamp)
     print_machine_infos(pzero_machine_infos)
+    print(event_searching(query={"bool":{}},all=True))

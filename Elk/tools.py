@@ -29,7 +29,7 @@ def print_machine_infos(event):
         # get the event id to define the structre of the event
         event__code = event["event"]["code"]
 
-        if event__code == "4624":
+        if event__code == "4624" and event["winlog"]["event_data"]["LogonType"] in ["10","7"]:
             print(f'''
                     RDP Connection:
                     Timestamp               : {event["@timestamp"]}\n\
@@ -41,7 +41,18 @@ def print_machine_infos(event):
                     Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
                     Source Domain           : {event["source"]["domain"]}\n\
                     Ip Addres Source        : {event["source"]["ip"]}\n''')
-        
+        elif event__code == "4624":
+            print(f'''
+                    Interactive Logon:
+                    Timestamp               : {event["@timestamp"]}\n\
+                    Id                      : {event["user"]["id"]}\n\
+                    Username                : {event["user"]["name"]}\n\
+                    Domaine                 : {event["user"]["domain"]}\n\
+                    Host Name               : {event["host"]["hostname"]}\n\
+                    Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
+                    Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
+                    Source Domain           : {event["source"]["domain"]}\n\
+                    Ip Addres Source        : {event["source"]["ip"]}\n''')
         elif event__code in ["91","6"]:
             print(f'''
                     WinRM Connection:
