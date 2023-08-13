@@ -1,0 +1,8 @@
+[project]
+name = "pzero"
+version = "1.0"
+
+description = "Detecting the First Infected Machine by Attackers Through Different Windows Connection Protocols Using Windows Event Logs"
+
+author = ["0xhunte213 <m.seddaoui@esi-sba.dz>"]
+
