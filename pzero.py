@@ -7,9 +7,11 @@ from Elk import *
 from Network_protocols_detection import *
 from datetime import datetime
 from argparse import ArgumentParser
+from elasticsearch import Elasticsearch
+from decouple import config
 
 # lookin for interactive logon
-def Interactive_login(user=None,ip_source=None,timestamp=None):
+def Interactive_login(es,user=None,ip_source=None,timestamp=None):
     """
         detection of logon event id 4624 type 2 for interactive login
     """
@@ -55,14 +57,14 @@ def Interactive_login(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    event = event_searching(search_query)
+    event = event_searching(es,query=search_query)
     if event:
         return event
     else:
         return None
 
 
-def main(user=None,ip_source=None,timestamp=None):
+def main(es,user=None,ip_source=None,timestamp=None):
     '''
         analysing different windows events log (rdp,winrm)\
         to get to first machine was infected by attacker
@@ -75,13 +77,13 @@ def main(user=None,ip_source=None,timestamp=None):
     starting_time = timestamp  
 
     while event:
-        event = rdp_detection.RDP_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+        event = rdp_detection.RDP_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
         if event == None:
             # RDP connection event
-            event = winrm_detection.WinRM_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+            event = winrm_detection.WinRM_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
             
             if event == None:
-                event = ssh_detection.SSH_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                event = ssh_detection.SSH_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
                 if event:
                     message = event["message"]
                     frm_idx = message.index(" from")
@@ -92,19 +94,19 @@ def main(user=None,ip_source=None,timestamp=None):
                 else:
                     print("No SSH connections with this Parameters")
                     # psexec and smbexec detection
-                    event = pssmbexec_detection.PSSMBexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                    event = pssmbexec_detection.PSSMBexec_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
                     if event:
                         source_ip =event["source"]["ip"]
                         target_user = event["winlog"]["event_data"]["TargetUserName"]
                     else:
                         print("No SMB connections with this Parameters")
-                        event = wmiexec_detection.WMIexec_detection(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                        event = wmiexec_detection.WMIexec_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
                         if event:
                             source_ip =event["source"]["ip"]
                             target_user = event["winlog"]["event_data"]["TargetUserName"]
                         else:
                             print("No WMI connections with this Parameters")
-                            event = Interactive_login(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                            event = Interactive_login(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
                             if event:
                                 source_ip =event["source"]["ip"]
                                 target_user = event["winlog"]["event_data"]["TargetUserName"]
@@ -139,7 +141,11 @@ if __name__ == "__main__":
     ip_source = args.ip_source # ip source of a machine
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
+    ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
+    CLOUD_ID = config("CLOUD_ID")
+    INDEX_PATTERN = 'winlogbeat-*'
 
-    pzero_machine_infos = main(user=user,ip_source=ip_source,timestamp=timestamp)
+    es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
+    pzero_machine_infos = main(es=es,user=user,ip_source=ip_source,timestamp=timestamp)
     print_machine_infos(pzero_machine_infos)
-    print(event_searching(query={"bool":{}},all=True))
+    print(event_searching(es,query={"bool":{}},all=True))

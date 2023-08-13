@@ -1,7 +1,7 @@
 
 from Elk import timestamp_delta,event_searching,timestamp_add
 
-def WMIexec_detection(user=None,ip_source=None,timestamp=None):
+def WMIexec_detection(es,user=None,ip_source=None,timestamp=None):
     """
         Detection utilization of wmiexec from impacket tool kit in the network\
         using event id 3,4672,4624
@@ -47,7 +47,7 @@ def WMIexec_detection(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    event_epmap = event_searching(search_query)
+    event_epmap = event_searching(es,query=search_query)
     # if epmap exist we look for 4624 forward and event id 3 backward by 5 seconds range and comparing source port from two events
     if event_epmap:
         machine_ip_dest = event_epmap["host"]["ip"][1] # ip address of destination machine target
@@ -75,7 +75,7 @@ def WMIexec_detection(user=None,ip_source=None,timestamp=None):
                 ]
             }
         }
-        event_4624 = event_searching(search_query_4624)
+        event_4624 = event_searching(es,query=search_query_4624)
         #delta time range substration of 1 second bcz SMB connection heppening before it
         # backwarding_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=1)
         # backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -99,7 +99,7 @@ def WMIexec_detection(user=None,ip_source=None,timestamp=None):
                 }
         }
         
-        event_3 = event_searching(search_query_3)
+        event_3 = event_searching(es,query=search_query_3)
         if event_3:
             return event_4624
         else:

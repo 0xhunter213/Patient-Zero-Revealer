@@ -6,61 +6,62 @@ import Button from "@mui/material/Button";
 export default function NetView({selected,setSelected,props}) {
     const graphRef = useRef(null);
     const [datas, setDatas] = useState("--");
-    console.log("FROM NETVIEW COMPENENT: ",selected);
-    const _data = {
-      nodes: [
-        {
-          id:"elastic",
-          shape:"image",
-          label:"elastic",
-          title:"elastic",
-          image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
-          size:40,
-        }
-        ,
-        {
-          id: "MACHINE0",
-          color: "blue",
-          shape: "image",
-          label: "machine0",
-          title: "machine0",
-          image:
-            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-          size: 40,
-          ip:"10.10.14.34",
-          build:"19.345",
-          os:"Windows 10",
-          domain:"$MACHINE0",
+    const WindowsImg = "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png";
+    const elasticImg = "https://companieslogo.com/img/orig/ESTC-4d81ee09.png";
+   // const _data = {
+    //   nodes: [
+    //     {
+    //       id:"elastic",
+    //       shape:"image",
+    //       label:"elastic",
+    //       title:"elastic",
+    //       image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
+    //       size:40,
+    //     }
+    //     ,
+    //     {
+    //       id: "MACHINE0",
+    //       color: "blue",
+    //       shape: "image",
+    //       label: "machine0",
+    //       title: "machine0",
+    //       image:
+    //         "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+    //       size: 40,
+    //       ip:"10.10.14.34",
+    //       build:"19.345",
+    //       os:"Windows 10",
+    //       domain:"$MACHINE0",
 
 
-        },
-        {
-          id: "MACHINE1",
-          color: "blue",
-          shape: "image",
-          title: "machine1",
-          label: "machine1",
-          image:
-            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-          size: 40,
-          ip:"10.10.14.35",
-          build:"19.391",
-          os:"Windows 10",
-          domain:"$MACHINE1",
+    //     },
+    //     {
+    //       id: "MACHINE1",
+    //       color: "blue",
+    //       shape: "image",
+    //       title: "machine1",
+    //       label: "machine1",
+    //       image:
+    //         "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+    //       size: 40,
+    //       ip:"10.10.14.35",
+    //       build:"19.391",
+    //       os:"Windows 10",
+    //       domain:"$MACHINE1",
           
-        },
+    //     },
   
-      ],
-      edges: [
-        { from: "MACHINE0", to: "MACHINE1", color: "red" },
-        { from: "MACHINE1", to: "MACHINE0", color: "red" },
-        { from: "MACHINE0", to: "elastic", color: "green" },
-        { from: "MACHINE1", to: "elastic", color: "green" },
+    //   ],
+    //   edges: [
+    //     { from: "MACHINE0", to: "MACHINE1", color: "red" },
+    //     { from: "MACHINE1", to: "MACHINE0", color: "red" },
+    //     { from: "MACHINE0", to: "elastic", color: "green" },
+    //     { from: "MACHINE1", to: "elastic", color: "green" },
       
-      ]
-    };
+    //   ]
+    //};
   
-    const [data, setData] = useState(_data);
+    const [data, setData] = useState(null);
   
     const options = {
       interaction: {
@@ -155,6 +156,7 @@ export default function NetView({selected,setSelected,props}) {
   
   return (
     <div className='topology'>
+      {data?
       <Grid>
         <Grid item md={7} style={{ display: "flex" }}>
           <Network
@@ -281,7 +283,7 @@ export default function NetView({selected,setSelected,props}) {
           </Button>
         </Grid>
       </Grid> */}
-      </Grid>
+      </Grid>:<div className='networkError'><h1>Elastic Connection settings needed</h1></div>}
     </div>
   )
 }

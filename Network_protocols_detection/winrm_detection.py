@@ -5,7 +5,7 @@
 from Elk import timestamp_delta,timestamp_add,event_searching
 import re
 
-def WinRM_detection(user=None,ip_source=None,timestamp=None):
+def WinRM_detection(es,user=None,ip_source=None,timestamp=None):
     '''
         Windows Remote Management Connection depending to user or ip source of suspicious machine or with timestamp
     '''
@@ -45,7 +45,7 @@ def WinRM_detection(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    event_winrm_rquest = event_searching(query=search_query)
+    event_winrm_rquest = event_searching(es,query=search_query)
     if event_winrm_rquest != None:
         # message of event contains ip address of attacker machine
         source_machine_info = re.search(r'clientIP:',event_winrm_rquest["message"])
@@ -76,7 +76,7 @@ def WinRM_detection(user=None,ip_source=None,timestamp=None):
                 }
             }
 
-            event_wsman_init = event_searching(query=search_query)
+            event_wsman_init = event_searching(es,query=search_query)
 
             if event_wsman_init:
                 return event_wsman_init

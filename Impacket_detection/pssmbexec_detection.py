@@ -6,7 +6,7 @@
 
 from Elk import timestamp_delta,event_searching
 
-def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
+def PSSMBexec_detection(es,user=None,ip_source=None,timestamp=None):
     '''
     Detection of a potential PsExec connection based on the usage of SMB\
     This function looks for all events with ID 7045 (service installed) and events that came after event 3 with\
@@ -59,7 +59,7 @@ def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    events_sercice_installed = event_searching(search_query,all=True)
+    events_sercice_installed = event_searching(es,query=search_query,all=True)
     returned_event = None
     if events_sercice_installed:
         for event in events_sercice_installed:
@@ -105,8 +105,8 @@ def PSSMBexec_detection(user=None,ip_source=None,timestamp=None):
                 }
             }
             # with the searching query above now searching for 4624 event and 3 
-            event_4624 = event_searching(search_query_event_4624)
-            event_3 = event_searching(search_query_event_3)
+            event_4624 = event_searching(es,query=search_query_event_4624)
+            event_3 = event_searching(es,query=search_query_event_3)
 
             if event_3 and event_4624:
                 return event_4624 # return login event bcz it contain all infos of user

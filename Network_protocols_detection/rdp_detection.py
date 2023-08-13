@@ -1,7 +1,7 @@
 # detection RDP connection with event id 4624 type 10
 
 from Elk import timestamp_delta,event_searching
-def RDP_detection(user=None,ip_source=None,timestamp=None):
+def RDP_detection(es,user=None,ip_source=None,timestamp=None):
     '''
         Remote Desktop connections for a specifc user parameters
     '''
@@ -49,14 +49,14 @@ def RDP_detection(user=None,ip_source=None,timestamp=None):
     # exisit item with event ID 4624 type 10 searched
     # also we can use timestamp or machine `ip` `name` ...
 
-    event_4624_rdp = event_searching(query=search_query)
+    event_4624_rdp = event_searching(es,query=search_query)
 
 
     if event_4624_rdp: 
         return event_4624_rdp
     else:
         search_query["bool"]["must"][1]= {"match":{"winlog.event_data.LogonType":"7"}}
-        event_4624_rdp = event_searching(query=search_query)
+        event_4624_rdp = event_searching(es,query=search_query)
         if event_4624_rdp:
             return event_4624_rdp
         print(f"No RDP connections with this Parameters\n")

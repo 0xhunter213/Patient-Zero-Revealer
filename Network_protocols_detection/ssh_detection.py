@@ -6,7 +6,7 @@
 from Elk import event_searching,timestamp_delta
 
 
-def SSH_detection(user=None,ip_source=None,timestamp=None):
+def SSH_detection(es,user=None,ip_source=None,timestamp=None):
     '''
         ssh connection events
         event id is 4 also sysmon there is an event with id 4 so we diffrence between them with message item
@@ -52,7 +52,7 @@ def SSH_detection(user=None,ip_source=None,timestamp=None):
         }})
 
 
-    event_ssh = event_searching(search_query)
+    event_ssh = event_searching(es,query=search_query)
     
     if event_ssh:
         return event_ssh
