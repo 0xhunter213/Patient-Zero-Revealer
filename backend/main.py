@@ -1,18 +1,24 @@
 from fastapi import FastAPI
-from decouple import Config
-
+from decouple import config
+from elasticsearch import Elasticsearch
+from ..pzero.Elk import event_searching
 app = FastAPI()
 
-CLOUD_ID = Config("CLOUD_ID")
-PASSWORD = Config("ELASTIC_PASSWORD")
-INDEX_PATTERN = 'winlogbeat-*'
-
-
+CLOUD_ID = config("CLOUD_ID")
+PASSWORD = config("ELASTIC_PASSWORD")
 
 @app.get("/")
 async def index():
     global es
     if CLOUD_ID and PASSWORD:
-        es = 
-    
-    return {"message":None}
+        data ={"nodes":[],"edges":[]} # machines network data
+        es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
+        query = {
+            "bool":{
+                "must":[{"match":{"event.code":"3"}}],
+                "filter":[]
+            }
+        }
+        print(event_searching(es,query=query))
+    else:
+        return {"network_data":None}
