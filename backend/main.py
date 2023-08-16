@@ -9,7 +9,7 @@ from schemas import ElasticCreds
 from models import Base
 from crud import update_creds,get_creds,create_creds
 from Elk import event_searching
-from pzero.pzero import pzero_revealer
+from Revealer import pzero_revealer
 
 Base.metadata.create_all(bind=engine)
 
