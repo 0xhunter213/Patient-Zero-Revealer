@@ -64,7 +64,7 @@ def Interactive_login(es,user=None,ip_source=None,timestamp=None):
         return None
 
 
-def main(es,user=None,ip_source=None,timestamp=None):
+def pzero_revealer(es,user=None,ip_source=None,timestamp=None):
     '''
         analysing different windows events log (rdp,winrm)\
         to get to first machine was infected by attacker
@@ -146,6 +146,6 @@ if __name__ == "__main__":
     INDEX_PATTERN = 'winlogbeat-*'
 
     es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
-    pzero_machine_infos = main(es=es,user=user,ip_source=ip_source,timestamp=timestamp)
+    pzero_machine_infos = pzero_revealer(es=es,user=user,ip_source=ip_source,timestamp=timestamp)
     print_machine_infos(pzero_machine_infos)
     print(event_searching(es,query={"bool":{}},all=True))
