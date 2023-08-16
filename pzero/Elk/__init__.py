@@ -5,5 +5,5 @@ __all__ = [
     "timestamp_delta",
     "timestamp_add",
     "event_searching",
-    "print_machine_infos"
+    "print_machine_infos",
 ]
