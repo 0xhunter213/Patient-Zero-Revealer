@@ -1,4 +1,5 @@
-from fastapi import FastAPI,Depends,status,Response
+from fastapi import FastAPI,Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import Config
 from elasticsearch import Elasticsearch
@@ -22,11 +23,16 @@ def get_db():
     finally:
         db.close()
 
-origins = ["http://localhost:3000/","http://localhost"]
+origins = [
+    "*"
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 CLOUD_ID = Config("CLOUD_ID")
@@ -55,7 +61,8 @@ async def index(db: Session = Depends(get_db)):
             creds = create_creds(db=db,credsItem=creds_obj)
             es= Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
         
-        return await retrieve_netwrok_tpoplogy(es)
+        data = await retrieve_netwrok_tpoplogy(es)
+        return JSONResponse(data)
     except:
          return data   
 

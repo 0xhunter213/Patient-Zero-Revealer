@@ -1,5 +1,5 @@
 export const API_URL = {
-    dev: "http://locahost:8000"
+    dev: "http://127.0.0.1:8000/"
 };
 
 export const DEBUG = "dev";
