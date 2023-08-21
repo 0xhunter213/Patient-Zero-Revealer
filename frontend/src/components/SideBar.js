@@ -5,7 +5,6 @@ import { Collapse,CardBody, Card } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function SideBar({selected,setSelected,props}) {
-  console.log("FROM SIDEBAR COMPENENT: ",selected);
   return (
     <div  className='sidebar'>
     <HeadersSide/>

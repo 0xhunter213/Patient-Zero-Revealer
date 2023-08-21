@@ -2,12 +2,10 @@ import React,{useState,useRef,useEffect} from 'react'
 import Network from "react-graph-vis";
 import "../assests/css/NetView.css"
 import Grid from "@mui/material/Grid";
-import { API_URL, DEBUG } from '../constants';
-import axios from "axios";
-export default function NetView({selected,setSelected,props}) {
+
+export default function NetView({selected,setSelected,data,setData,props}) {
     const graphRef = useRef(null);
     const [datas, setDatas] = useState("--");
-    const [data,setData] = useState(null);
     const WindowsImg = "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png";
     const elasticImg = "https://companieslogo.com/img/orig/ESTC-4d81ee09.png";
    const _data = {
@@ -118,16 +116,6 @@ export default function NetView({selected,setSelected,props}) {
         // graphRef.current.zoomOut();
       }
     };
-    const fetchData = async () =>{
-      await axios.get(`${API_URL[DEBUG]}`).then(
-        response =>{
-          setData({nodes:response.data.nodes?response.data.nodes:[],edges:response.data.edges?response.data.edges:[]})
-        }
-      )
-    }
-    useEffect(()=>{
-      fetchData()
-    },[data])
 
     return(
     <div className='topology'>

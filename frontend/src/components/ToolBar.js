@@ -15,7 +15,6 @@ const ToolBar = (props)=>{
   const toggle = () =>{setModal(!modal)};
   const pztoggle= () =>{setPzModal(!pzmodal)};
   const estoggle = ()=>{setEsmodal(!esmodal)};
-
   return (
     <div className='toolbar'>
       <SearchEvents modal={modal} toggle={toggle} props={props} />

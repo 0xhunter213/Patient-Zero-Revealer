@@ -113,5 +113,6 @@ async def search_event(event_code: int ,username: str | None = None,ip_address: 
 
 
 @app.post("/pzero")
-async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str | None = None):
+async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str | None = None,db: Session = Depends(get_db)):
+    es = connect_es(db)
     return pzero_revealer(es,username,ip_address,timestamp)
