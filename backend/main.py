@@ -11,7 +11,7 @@ from models import Base
 from crud import update_creds,get_creds,create_creds
 from Elk import event_searching
 from Revealer import pzero_revealer
-
+import json
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -62,7 +62,7 @@ async def index(db: Session = Depends(get_db)):
             es= Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
         
         data = await retrieve_netwrok_tpoplogy(es)
-        return JSONResponse(data)
+        return data
     except:
          return data   
 
@@ -78,7 +78,10 @@ async def elastic(creds : ElasticCreds, db: Session = Depends(get_db)):
         return creds
     else:
         obj=create_creds(db,creds)
-    return obj
+    
+    es = Elasticsearch(cloud_id=creds.apikey,http_auth=(creds.username,creds.password))
+    data = await retrieve_netwrok_tpoplogy(es)
+    return data
 
 @app.get("/search")
 async def search_event(event_code: int ,username: str | None = None,ip_address: str | None = None, event_date_start : str | None = None, event_date_end : str | None = None,db: Session = Depends(get_db)):

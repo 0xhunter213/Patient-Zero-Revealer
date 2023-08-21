@@ -1,131 +1,95 @@
-import React,{useState,useRef} from 'react'
+import React,{useState,useRef,useEffect} from 'react'
 import Network from "react-graph-vis";
 import "../assests/css/NetView.css"
 import Grid from "@mui/material/Grid";
-import Button from "@mui/material/Button";
+import { API_URL, DEBUG } from '../constants';
+import axios from "axios";
 export default function NetView({selected,setSelected,props}) {
     const graphRef = useRef(null);
     const [datas, setDatas] = useState("--");
+    const [data,setData] = useState(null);
     const WindowsImg = "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png";
     const elasticImg = "https://companieslogo.com/img/orig/ESTC-4d81ee09.png";
-   // const _data = {
-    //   nodes: [
-    //     {
-    //       id:"elastic",
-    //       shape:"image",
-    //       label:"elastic",
-    //       title:"elastic",
-    //       image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
-    //       size:40,
-    //     }
-    //     ,
-    //     {
-    //       id: "MACHINE0",
-    //       color: "blue",
-    //       shape: "image",
-    //       label: "machine0",
-    //       title: "machine0",
-    //       image:
-    //         "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-    //       size: 40,
-    //       ip:"10.10.14.34",
-    //       build:"19.345",
-    //       os:"Windows 10",
-    //       domain:"$MACHINE0",
-
-
-    //     },
-    //     {
-    //       id: "MACHINE1",
-    //       color: "blue",
-    //       shape: "image",
-    //       title: "machine1",
-    //       label: "machine1",
-    //       image:
-    //         "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-    //       size: 40,
-    //       ip:"10.10.14.35",
-    //       build:"19.391",
-    //       os:"Windows 10",
-    //       domain:"$MACHINE1",
-          
-    //     },
-  
-    //   ],
-    //   edges: [
-    //     { from: "MACHINE0", to: "MACHINE1", color: "red" },
-    //     { from: "MACHINE1", to: "MACHINE0", color: "red" },
-    //     { from: "MACHINE0", to: "elastic", color: "green" },
-    //     { from: "MACHINE1", to: "elastic", color: "green" },
-      
-    //   ]
-    //};
-  
-    const [data, setData] = useState(null);
-  
-    const options = {
-      interaction: {
-        selectable: true,
-        hover: true
-      },
-      manipulation: {
-        enabled: true,
-        initiallyActive: true,
-        addNode: false,
-        addEdge: false,
-        /*  Adding new node to the graph */
-        // addNode: (data) => {
-        //   // console.log(callback,"callback")
-        //   console.log("Addnode is called for dragginggg.........");
-        //   console.log(data, "before main console");
-        //   data.id = newId;
-        //   data.image = newImage;
-        //   data.label = newLabel;
-        //   data.size = imgsize;
-        //   data.title = newTitle;
-        //   data.shape = "image";
-        //   // if (typeof callback === "function") {
-        //   // callback(data); // }
-        //   // callback(data);
-        //   setId("");
-        //   setLabel("");
-        //   setTitle("");
-        //   setImage("");
-        //   setImgsize("");
-        //   console.log(data, "myData");
-        //   console.log(graphRef, "mygraphical");
-        // },
-        // addEdge: true,
-        editNode: undefined,
-        editEdge: false,
-        deleteNode:false,
-        deleteEdge: false,
-        shapeProperties: {
-          borderDashes: false,
-          useImageSize: false,
-          useBorderWithImage: false
-        },
-        controlNodeStyle: {
-          shape: "dot",
-          size: 6,
-          color: {
-            background: "#ff0000",
-            border: "#3c3c3c",
-            highlight: {
-              background: "#07f968",
-              border: "#3c3c3c"
-            },
-            borderWidth: 2,
-            borderWidthSelected: 2
-          }
-        },
-        height: "100%",
-        color: "green",
-        hover: "true",
-        nodes: {
-          size: 20
+   const _data = {
+      nodes: [
+        {
+          id:"elastic",
+          shape:"image",
+          label:"elastic",
+          title:"elastic",
+          image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
+          size:40,
         }
-      }
+        ,
+        {
+          id: "MACHINE0",
+          color: "blue",
+          shape: "image",
+          label: "machine0",
+          title: "machine0",
+          image:
+            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+          size: 40,
+          ip:"10.10.14.34",
+          build:"19.345",
+          os:"Windows 10",
+          domain:"$MACHINE0",
+
+
+        },
+        {
+          id: "MACHINE1",
+          color: "blue",
+          shape: "image",
+          title: "machine1",
+          label: "machine1",
+          image:
+            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+          size: 40,
+          ip:"10.10.14.35",
+          build:"19.391",
+          os:"Windows 10",
+          domain:"$MACHINE1",
+          
+        },
+  
+      ],
+      edges: [
+        { from: "MACHINE0", to: "MACHINE1", color: "red" },
+        { from: "MACHINE1", to: "MACHINE0", color: "red" },
+        { from: "MACHINE0", to: "elastic", color: "green" },
+        { from: "MACHINE1", to: "elastic", color: "green" },
+      
+      ]
+    };
+  
+  //   console.log(_data)
+    //const [networkData,setNetworkData] = useState(null) 
+
+    const options = {
+      physics: {
+        stabilization: false,
+      },
+      nodes: {
+        color: "#53BF9D",
+      },
+      edges: {
+        physics: false,
+        color: "#233b91",
+        arrows: {
+          to: {
+            enabled: true,
+            type: "arrow",
+          },
+  
+          from: {
+            enabled: true,
+            type: "arrow",
+          },
+        },
+        length: 200,
+      },
+
     };
     function myFunction() {
       // Code for your onclick function goes here
@@ -142,6 +106,7 @@ export default function NetView({selected,setSelected,props}) {
       console.log(event);
       if(event.nodes[0]){
         setSelected(data.nodes.find(({id})=> id === event.nodes[0]));
+        console.log(selected)
       }else{
         setSelected(false)
       }
@@ -153,8 +118,18 @@ export default function NetView({selected,setSelected,props}) {
         // graphRef.current.zoomOut();
       }
     };
-  
-  return (
+    const fetchData = async () =>{
+      await axios.get(`${API_URL[DEBUG]}`).then(
+        response =>{
+          setData({nodes:response.data.nodes?response.data.nodes:[],edges:response.data.edges?response.data.edges:[]})
+        }
+      )
+    }
+    useEffect(()=>{
+      fetchData()
+    },[data])
+
+    return(
     <div className='topology'>
       {data?
       <Grid>
@@ -283,7 +258,8 @@ export default function NetView({selected,setSelected,props}) {
           </Button>
         </Grid>
       </Grid> */}
-      </Grid>:<div className='networkError'><h1>Elastic Connection settings needed</h1></div>}
+      </Grid>:
+      <div className='networkError'><h1>Elastic Connection settings needed</h1></div>}
     </div>
   )
 }

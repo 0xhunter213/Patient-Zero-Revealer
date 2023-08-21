@@ -10,7 +10,7 @@ export default function SideBar({selected,setSelected,props}) {
     <div  className='sidebar'>
     <HeadersSide/>
       <div className='informations'>
-      {selected.os == "Windows 10"?
+      {selected.os == "Windows 10 Pro"?
       <Collapse isOpen={selected} >
         <Card>
           <CardBody>
