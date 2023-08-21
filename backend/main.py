@@ -30,7 +30,7 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -67,21 +67,21 @@ async def index(db: Session = Depends(get_db)):
          return data   
 
 
-@app.post("/elastic",response_model=ElasticCreds)
+@app.post("/elastic")
 async def elastic(creds : ElasticCreds, db: Session = Depends(get_db)):
     """
         temp solution to store elastic creds (for cloud)
     """
     obj = get_creds(db,creds.id)
+    print("get object:",obj)
     if obj:
         updated_obj = update_creds(db,creds)
-        return creds
+        return {"message":"Elastic Configuration have Updated!"}
     else:
         obj=create_creds(db,creds)
+        return {"message":"Elastic Congiguration have Created"}
     
-    es = Elasticsearch(cloud_id=creds.apikey,http_auth=(creds.username,creds.password))
-    data = await retrieve_netwrok_tpoplogy(es)
-    return data
+
 
 @app.get("/search")
 async def search_event(event_code: int ,username: str | None = None,ip_address: str | None = None, event_date_start : str | None = None, event_date_end : str | None = None,db: Session = Depends(get_db)):
