@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import Config
 from elasticsearch import Elasticsearch
-from fetch_events import retrieve_netwrok_tpoplogy
+from fetch_events import retrieve_netwrok_tpoplogy,data_format
 from database import SessionLocal,engine
 from sqlalchemy.orm import Session
 from schemas import ElasticCreds
@@ -11,7 +11,7 @@ from models import Base
 from crud import update_creds,get_creds,create_creds
 from Elk import event_searching
 from Revealer import pzero_revealer
-import json
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -115,4 +115,8 @@ async def search_event(event_code: int ,username: str | None = None,ip_address: 
 @app.post("/pzero")
 async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str | None = None,db: Session = Depends(get_db)):
     es = connect_es(db)
-    return pzero_revealer(es,username,ip_address,timestamp)
+    event_init_access = pzero_revealer(es,username,ip_address,timestamp)
+    if event_init_access:
+        return data_format(event_init_access)
+    else:
+        return {"message":"No patient zero for this parameters"}

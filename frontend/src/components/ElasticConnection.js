@@ -15,9 +15,17 @@ export default function ElasticConnection({modal,toggle,props}) {
       apikey:key,
       username:user,
       password:pwd
-    }).then((response) => console.log(response.data) ).catch(
+    }).then(
+      (response) => {
+        if(response.data === {"message":"Elastic Configuration have Updated!" || response.data === {"message":"Elastic Congiguration have Created"}}){
+            toggle();
+        }else{
+          console.error("Connection Faild!");
+        }
+    }
+    ).catch(
       e=>console.log(e)
-    )
+    );
   }
   return (
     <Modal isOpen={modal} toggle={toggle} {...props} fullscreen={"xl"} size='xl'> 

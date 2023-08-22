@@ -19,7 +19,8 @@ def data_format(event):
         "ip":event["source"]["ip"],
         "build":event["host"]["os"]["build"],
         "os":event["host"]["os"]["name"],
-        "domain":event["source"]["domain"]
+        "domain":event["source"]["domain"],
+        "infected_first":False,
     }
 
     return data_notes
