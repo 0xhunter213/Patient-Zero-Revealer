@@ -1,5 +1,4 @@
 from fastapi import FastAPI,Depends
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from decouple import Config
 from elasticsearch import Elasticsearch
@@ -11,7 +10,6 @@ from models import Base
 from crud import update_creds,get_creds,create_creds
 from Elk import event_searching
 from Revealer import pzero_revealer
-
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()

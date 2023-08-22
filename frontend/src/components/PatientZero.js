@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col} from 'reactstrap';
+import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col,Spinner} from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import { API_URL,DEBUG } from '../constants';
@@ -7,9 +7,9 @@ export default function PatientZero({modal,toggle,props}) {
   const [username,setUsername] = useState(null);
   const [ip,setIp] = useState(null);
   const [date,setDate] = useState(null);
-  
+  const [loading,setLoading] = useState(false);
   const pzeroDetection = async ()=>{
-    axios.post(`${API_URL[DEBUG]}pzero`,{
+    await axios.post(`${API_URL[DEBUG]}pzero`,{
       username:username,
       ip_address:ip,
       timestamp:date
@@ -19,17 +19,25 @@ export default function PatientZero({modal,toggle,props}) {
 
         data.filter((val,id) => {
           if(id == res.data.id){
+            // change image to be compromised
             val.infected_first = true;
+            val.image = "https://raw.githubusercontent.com/MEhrn00/Havoc/blob/main/client/Data/resources/win10-8-icon-high.png"
           }
         });
 
         props.setData(data);
-        
+        setLoading(false)
+        toggle();
       }
     ).catch(
       e => {console.error(e)}
     );
-    toggle();
+  }
+  const detect = ()=>{
+    if (username){
+      setLoading(true);
+      pzeroDetection();
+    }
   }
   return (
     <Modal isOpen={modal} toggle={toggle} {...props} fullscreen={"lg"} size='lg'> 
@@ -42,6 +50,9 @@ export default function PatientZero({modal,toggle,props}) {
     Patient Zero Detection
     </ModalHeader>
     <ModalBody>
+      {loading?
+      <Spinner/>
+      :
         <Form>
             <FormGroup row>
                 <Label
@@ -94,11 +105,10 @@ export default function PatientZero({modal,toggle,props}) {
             />
             </Col>
         </FormGroup>
-        </Form>
-
+        </Form>}
     </ModalBody>
     <ModalFooter>
-      <Button color='primary' onClick={pzeroDetection} outline>
+      <Button color='primary' onClick={detect} outline>
         Detect
       </Button>{' '}
       <Button color="danger" onClick={toggle} outline>

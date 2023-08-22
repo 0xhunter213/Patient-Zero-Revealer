@@ -14,7 +14,8 @@ def data_format(event):
         "title":event["host"]["hostname"],
         "color": "blue",
         "shape": "image",
-        "image":"https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+        "image":"https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon.png",
+        #https://raw.githubusercontent.com/MEhrn00/Havoc/blob/main/client/Data/resources/win10-8-icon-high.png
         "size": 40,
         "ip":event["source"]["ip"],
         "build":event["host"]["os"]["build"],
