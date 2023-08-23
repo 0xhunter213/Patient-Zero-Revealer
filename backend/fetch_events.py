@@ -41,26 +41,28 @@ async def retrieve_netwrok_tpoplogy(es):
     events = event_searching(es,query=search_query,all=True)
 
 
-    print(len(events))
+    nodes = {}
     for evt in events:
         ip_addresses = [item["ip"] for item in data["nodes"]]
         if (evt["source"]["ip"] not in ip_addresses) and (not re.search(r":",evt["source"]["ip"])):
-            print(data_format(evt))
             data["nodes"].append(data_format(evt))
+            nodes[str(evt["source"]["ip"])] = data_format(evt)
 
-    for evt in events:
-        if evt["source"]["ip"] in ip_addresses:
-            rst_ips = ip_addresses.copy()
-            rst_ips.pop(ip_addresses.index(evt["source"]["ip"]))
-            for ip_dest in rst_ips:
+    for ip_src in ip_addresses:
+        rst_ips = ip_addresses.copy()
+        rst_ips.pop(ip_addresses.index(evt["source"]["ip"]))
+        for ip_dest in rst_ips:
                 # add edges machine to elastic if you wish to add it
-                if ip_dest in evt["related"]["ip"] or ip_dest == evt["destination"]["ip"]:
-                    for item in data["nodes"]:
-                        if item["ip"] == ip_dest:
-                            data["egdges"].append({"from":evt["id"],"to":item["id"],"color":"red"})
-                            break
-
-    
+            search_query = {
+                "bool":{
+                    "must":{"match":{"source.ip":ip_src}},
+                    "must":{"match":{"destination.ip":ip_dest}}
+                }   
+            }
+            event = event_searching(es,query=search_query)
+            
+            if event:      
+                data["egdges"].append({"from":nodes[ip_src]["id"],"to":nodes[ip_dest]["id"],"color":"red"})
 
     return data
     
