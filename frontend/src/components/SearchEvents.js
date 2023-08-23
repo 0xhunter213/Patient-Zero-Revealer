@@ -138,7 +138,7 @@ export default function SearchEvents({modal,toggle,props}) {
                 for="EventID"
                 sm={2}    
             >
-            Number
+            Event ID
             </Label>
             <Col sm={10}>
                 <Input

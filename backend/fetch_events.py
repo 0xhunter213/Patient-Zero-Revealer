@@ -9,7 +9,7 @@ PASSWORD = config("ELASTIC_PASSWORD")
 def data_format(event):
     assert event
     data_notes = {
-        "id":event["user"]["domain"],
+        "id":event["winlog"]["computer_name"],
         "label":event["winlog"]["computer_name"],
         "title":event["host"]["hostname"],
         "color": "blue",
@@ -39,11 +39,15 @@ async def retrieve_netwrok_tpoplogy(es):
     }
     
     events = event_searching(es,query=search_query,all=True)
-    
+
+
+    print(len(events))
     for evt in events:
         ip_addresses = [item["ip"] for item in data["nodes"]]
-        if evt["source"]["ip"] not in ip_addresses and not re.search(r":",evt["source"]["ip"]):
+        if (evt["source"]["ip"] not in ip_addresses) and (not re.search(r":",evt["source"]["ip"])):
+            print(data_format(evt))
             data["nodes"].append(data_format(evt))
+
     for evt in events:
         if evt["source"]["ip"] in ip_addresses:
             rst_ips = ip_addresses.copy()

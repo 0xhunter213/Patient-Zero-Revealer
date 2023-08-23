@@ -58,8 +58,9 @@ async def index(db: Session = Depends(get_db)):
             creds_obj = ElasticCreds(id=1,apikey=CLOUD_ID,username="elastic",password=PASSWORD)
             creds = create_creds(db=db,credsItem=creds_obj)
             es= Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
-        
+        print("processing!")
         data = await retrieve_netwrok_tpoplogy(es)
+        print("data:",data)
         return data
     except:
          return data   

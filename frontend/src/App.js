@@ -23,7 +23,7 @@ function App() {
   }
   useEffect(()=>{
     fetchData()
-  },[data])
+  },[])
 
   return (
     <div className="App">
