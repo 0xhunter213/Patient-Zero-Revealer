@@ -50,7 +50,7 @@ async def retrieve_netwrok_tpoplogy(es):
 
     for ip_src in ip_addresses:
         rst_ips = ip_addresses.copy()
-        rst_ips.pop(ip_addresses.index(evt["source"]["ip"]))
+        rst_ips.pop(ip_addresses.index(ip_src))
         for ip_dest in rst_ips:
                 # add edges machine to elastic if you wish to add it
             search_query = {
