@@ -16,7 +16,7 @@ export default function PatientZero({modal,toggle,props}) {
     }).then(
       res=>{
         let data = props.data;
-
+        console.log("pzero api data: ",res.data);
         data.filter((val,id) => {
           if(id == res.data.id){
             // change image to be compromised

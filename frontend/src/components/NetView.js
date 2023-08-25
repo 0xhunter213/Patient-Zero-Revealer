@@ -1,4 +1,4 @@
-import React,{useState,useRef,useEffect} from 'react'
+import React,{useState,useRef,useEffect} from "react"
 import Network from "react-graph-vis";
 import "../assests/css/NetView.css"
 import Grid from "@mui/material/Grid";
@@ -8,59 +8,92 @@ export default function NetView({selected,setSelected,data,setData,props}) {
     const [datas, setDatas] = useState("--");
     const WindowsImg = "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png";
     const elasticImg = "https://companieslogo.com/img/orig/ESTC-4d81ee09.png";
-   const _data = {
-      nodes: [
-        {
-          id:"elastic",
-          shape:"image",
-          label:"elastic",
-          title:"elastic",
-          image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
-          size:40,
-        }
-        ,
-        {
-          id: "MACHINE0",
-          color: "blue",
-          shape: "image",
-          label: "machine0",
-          title: "machine0",
-          image:
-            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-          size: 40,
-          ip:"10.10.14.34",
-          build:"19.345",
-          os:"Windows 10",
-          domain:"$MACHINE0",
+  //  const _data = {
+  //     nodes: [
+  //       {
+  //         id:"elastic",
+  //         shape:"image",
+  //         label:"elastic",
+  //         title:"elastic",
+  //         image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
+  //         size:40,
+  //       }
+  //       ,
+  //       {
+  //         id: "MACHINE0",
+  //         color: "blue",
+  //         shape: "image",
+  //         label: "machine0",
+  //         title: "machine0",
+  //         image:
+  //           "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+  //         size: 40,
+  //         ip:"10.10.14.34",
+  //         build:"19.345",
+  //         os:"Windows 10",
+  //         domain:"$MACHINE0",
 
 
-        },
-        {
-          id: "MACHINE1",
-          color: "blue",
-          shape: "image",
-          title: "machine1",
-          label: "machine1",
-          image:
-            "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
-          size: 40,
-          ip:"10.10.14.35",
-          build:"19.391",
-          os:"Windows 10",
-          domain:"$MACHINE1",
+  //       },
+  //       {
+  //         id: "MACHINE1",
+  //         color: "blue",
+  //         shape: "image",
+  //         title: "machine1",
+  //         label: "machine1",
+  //         image:
+  //           "https://cdn.icon-icons.com/icons2/595/PNG/512/Computer_icon-icons.com_55509.png",
+  //         size: 40,
+  //         ip:"10.10.14.35",
+  //         build:"19.391",
+  //         os:"Windows 10",
+  //         domain:"$MACHINE1",
           
-        },
+  //       },
   
-      ],
-      edges: [
-        { from: "MACHINE0", to: "MACHINE1", color: "red" },
-        { from: "MACHINE1", to: "MACHINE0", color: "red" },
-        { from: "MACHINE0", to: "elastic", color: "green" },
-        { from: "MACHINE1", to: "elastic", color: "green" },
+  //     ],
+  //     edges: [
+  //       { from: "MACHINE0", to: "MACHINE1", color: "red" },
+  //       { from: "MACHINE1", to: "MACHINE0", color: "red" },
+  //       { from: "MACHINE0", to: "elastic", color: "green" },
+  //       { from: "MACHINE1", to: "elastic", color: "green" },
       
-      ]
-    };
-  
+  //     ]
+  //   };
+  // const _data = {
+  //   nodes: [
+  //     {
+  //       id: "machine1",
+  //       label: "machine1",
+  //       title: "machine1", 
+  //       color: "blue", 
+  //       shape: "image",
+  //       image: "https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon.png", 
+  //       size: 40, 
+  //       ip: "192.168.8.104", 
+  //       build: "19041.264", 
+  //       os: "Windows 10 Pro", 
+  //       domain: "machine1", 
+  //       infected_first: false
+  //     }, 
+  //     {
+  //       id: "machine0", 
+  //       label: "machine0", 
+  //       title: "machine0", 
+  //       color: "blue", 
+  //       shape: "image", 
+  //       image: "https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon.png", 
+  //       size: 40, 
+  //       ip: "192.168.8.103", 
+  //       build: "19045.3208", 
+  //       os: "Windows 10 Pro", 
+  //       domain: "machine0", 
+  //       infected_first: false}
+  //     ], 
+  //   egdges: [
+  //     {from:"machine1", to: "machine0", color: "red"}, 
+  //     {from: "machine0", to: "machine1", color: "red"}
+  //   ]};
   //   console.log(_data)
     //const [networkData,setNetworkData] = useState(null) 
 
@@ -116,10 +149,10 @@ export default function NetView({selected,setSelected,data,setData,props}) {
         // graphRef.current.zoomOut();
       }
     };
-
+    // useEffect(()=>{setData({nodes:_data.nodes,edges:_data.egdges})},[])
     return(
-    <div className='topology'>
-      {data?
+    <div className="topology">
+      {(data != {nodes:[],edges:[]})?
       <Grid>
         <Grid item md={7} style={{ display: "flex" }}>
           <Network
@@ -247,7 +280,7 @@ export default function NetView({selected,setSelected,data,setData,props}) {
         </Grid>
       </Grid> */}
       </Grid>:
-      <div className='networkError'><h1>Elastic Connection settings needed</h1></div>}
+      <div className="networkError"><h1>Elastic Connection settings needed</h1></div>}
     </div>
   )
 }

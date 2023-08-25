@@ -31,7 +31,7 @@ async def retrieve_netwrok_tpoplogy(es):
         fetching machines exist and different connections on the network from elastic
     """
     ip_addresses=[]
-    data = {"nodes":[],"egdges":[]}
+    data = {"nodes":[],"edges":[]}
     search_query = {
             "bool":{
                 "must":[{"match":{"event.code":"3"}}]
@@ -62,7 +62,7 @@ async def retrieve_netwrok_tpoplogy(es):
             event = event_searching(es,query=search_query)
             
             if event:      
-                data["egdges"].append({"from":nodes[ip_src]["id"],"to":nodes[ip_dest]["id"],"color":"red"})
+                data["edges"].append({"from":nodes[ip_src]["id"],"to":nodes[ip_dest]["id"],"color":"red"})
 
     return data
     

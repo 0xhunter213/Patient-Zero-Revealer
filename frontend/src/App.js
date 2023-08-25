@@ -9,12 +9,13 @@ import axios from "axios";
 //["FFFFFF","0457A6","07539D","FFFFFF","162360"]
 function App() {
   const [selected,setSelected] = useState(false);
-  const [data,setData] = useState(null);
+  const [data,setData] = useState({nodes:[],edges:[]});
   const fetchData = async () =>{
     await axios.get(`${API_URL[DEBUG]}`).then(
       response =>{
         let nodes = response.data.nodes.filter((val,id,array) => {return array.indexOf(val) == id;})
         let edges = response.data.edges
+        console.log("data: ",{nodes:nodes?nodes:[],edges:edges?edges:[]})
         setData({nodes:nodes?nodes:[],edges:edges?edges:[]})
       }
     ).catch(e=>{
@@ -23,7 +24,7 @@ function App() {
   }
   useEffect(()=>{
     fetchData()
-  },[])
+  },[data])
 
   return (
     <div className="App">
