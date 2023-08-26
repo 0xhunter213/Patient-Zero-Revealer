@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col,Spinner} from 'reactstrap';
+import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col,Spinner,Alert} from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import { API_URL,DEBUG } from '../constants';
@@ -8,13 +8,25 @@ export default function PatientZero({modal,toggle,props}) {
   const [ip,setIp] = useState(null);
   const [date,setDate] = useState(null);
   const [loading,setLoading] = useState(false);
+  const [err,setErr] = useState(false);
+  const [info,setInfo] = useState(false);
+  const [message,setMessage] = useState("");
+
+  const onDismiss = () => setErr(false);
+  const infoToggle = () => setInfo(false);
   const pzeroDetection = async ()=>{
-    await axios.post(`${API_URL[DEBUG]}pzero`,{
+    await axios.get(`${API_URL[DEBUG]}pzero`,{params:{
       username:username,
       ip_address:ip,
-      timestamp:date
+      timestamp:date}
     }).then(
       res=>{
+        if(res.data.message){
+          setLoading(false);
+          setInfo(true);
+          setMessage(res.data.message);
+          setTimeout(infoToggle,5000);
+        }else{
         let data = props.data;
         console.log("pzero api data: ",res.data);
         data.filter((val,id) => {
@@ -29,8 +41,12 @@ export default function PatientZero({modal,toggle,props}) {
         setLoading(false)
         toggle();
       }
+      }
     ).catch(
-      e => {console.error(e)}
+      e => {
+        setLoading(false);
+        setErr(true);
+      }
     );
   }
   const detect = ()=>{
@@ -51,8 +67,21 @@ export default function PatientZero({modal,toggle,props}) {
     </ModalHeader>
     <ModalBody>
       {loading?
-      <Spinner/>
+      <div style={{
+        display:'flex',
+        justifyContent:'center',
+        padding:50,
+      }}>
+        <Spinner/>
+      </div>
       :
+        <>
+        <Alert color="danger" isOpen={err} toggle={onDismiss}>
+            Somthing goes wrong !
+        </Alert>
+        <Alert color='info' isOpen={info} toggle={infoToggle}>
+          {message}
+        </Alert>
         <Form>
             <FormGroup row>
                 <Label
@@ -105,7 +134,8 @@ export default function PatientZero({modal,toggle,props}) {
             />
             </Col>
         </FormGroup>
-        </Form>}
+        </Form>
+        </>}
     </ModalBody>
     <ModalFooter>
       <Button color='primary' onClick={detect} outline>

@@ -10,6 +10,7 @@ from models import Base
 from crud import update_creds,get_creds,create_creds
 from Elk import event_searching
 from Revealer import pzero_revealer
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -111,10 +112,11 @@ async def search_event(event_code: int ,username: str | None = None,ip_address: 
     return event_searching(es=es,query=search_query)
 
 
-@app.post("/pzero")
+@app.get("/pzero")
 async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str | None = None,db: Session = Depends(get_db)):
     es = connect_es(db)
     event_init_access = pzero_revealer(es,username,ip_address,timestamp)
+    print("the events",event_init_access)
     if event_init_access:
         return data_format(event_init_access)
     else:
