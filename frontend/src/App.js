@@ -15,7 +15,24 @@ function App() {
       response =>{
         let nodes = response.data.nodes.filter((val,id,array) => {return array.indexOf(val) == id;})
         let edges = response.data.edges
+        if(nodes.length != 0){
+          nodes.forEach(element => {
+            edges.push({from:element.id,to:"elastic",color:"green"})
+          });
+          
+          nodes.push( {
+                    id:"elastic",
+                    shape:"image",
+                    label:"elastic",
+                    title:"elastic",
+                    image:"https://companieslogo.com/img/orig/ESTC-4d81ee09.png",
+                    size:40,
+                  }
+          )
+         
+        }
         console.log("data: ",{nodes:nodes?nodes:[],edges:edges?edges:[]})
+        
         setData({nodes:nodes?nodes:[],edges:edges?edges:[]})
       }
     ).catch(e=>{
