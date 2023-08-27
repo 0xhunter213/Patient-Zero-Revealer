@@ -98,13 +98,13 @@ def pzero_revealer(es,user=None,ip_source=None,timestamp=None):
                             target_user = event["winlog"]["event_data"]["TargetUserName"]
                         else:
                             print("No WMI connections with this Parameters")
-                            event = Interactive_login(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
-                            if event:
-                                source_ip =event["source"]["ip"]
-                                target_user = event["winlog"]["event_data"]["TargetUserName"]
-                            else:
-                                print("No Interactive login with this Parameters")
-                                break
+                            # event = Interactive_login(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
+                            # if event:
+                            #     source_ip =event["source"]["ip"]
+                            #     target_user = event["winlog"]["event_data"]["TargetUserName"]
+                            # else:
+                            #print("No Interactive login with this Parameters")
+                            break
             else:
                 # condition to recover the source machine 
                 if event["event"]["code"] == "91":

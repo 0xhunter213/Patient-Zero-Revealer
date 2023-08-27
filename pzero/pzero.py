@@ -31,4 +31,3 @@ if __name__ == "__main__":
     es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
     pzero_machine_infos = pzero_revealer(es=es,user=user,ip_source=ip_source,timestamp=timestamp)
     print_machine_infos(pzero_machine_infos)
-    print(event_searching(es,query={"bool":{}},all=True))

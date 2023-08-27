@@ -68,8 +68,8 @@ def WinRM_detection(es,user=None,ip_source=None,timestamp=None):
                     "filter":[
                         {"range":{
                             "@timestamp":{
-                                "gte":event_winrm_rquest["@timestamp"],
-                                "lte":timestamp_add(event_winrm_rquest["@timestamp"],minutes=1),
+                                "gte":timestamp_delta(event_winrm_rquest["@timestamp"],minutes=1),
+                                "lte":event_winrm_rquest["@timestamp"],
                             }
                         }}
                     ]
@@ -77,7 +77,6 @@ def WinRM_detection(es,user=None,ip_source=None,timestamp=None):
             }
 
             event_wsman_init = event_searching(es,query=search_query)
-
             if event_wsman_init:
                 return event_wsman_init
             else:
