@@ -114,6 +114,6 @@ def pzero_revealer(es,user=None,ip_source=None,timestamp=None):
         past_event=event
 
     if past_event == None:
-        past_event = event = Interactive_login(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
-
+       # past_event = event = Interactive_login(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
+        print("nothing at all")
     return past_event

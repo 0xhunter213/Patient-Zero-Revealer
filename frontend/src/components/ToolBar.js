@@ -7,7 +7,7 @@ import {SiElasticsearch} from "react-icons/si"
 import {PiDetectiveFill} from "react-icons/pi"
 import PatientZero from './PatientZero';
 import ElasticConnection from './ElasticConnection';
-const ToolBar = (props)=>{
+const ToolBar = (data,setData,props)=>{
   const [modal , setModal] = useState(false);
   const [pzmodal,setPzModal] = useState(false);
   const [esmodal,setEsmodal]=useState(false);
@@ -24,7 +24,7 @@ const ToolBar = (props)=>{
         </div>
         <p>Search</p>
       </div>
-      <PatientZero modal={pzmodal} toggle={pztoggle} props={props}/>
+      <PatientZero modal={pzmodal} toggle={pztoggle}  data={data} setData={setData} props={props}/>
       <div className='patient-zero' onClick={pztoggle}>
         <div style={{"width":"50px","height":"50px"}}>
           <PiDetectiveFill size={"lg"} color='#07539D'/>

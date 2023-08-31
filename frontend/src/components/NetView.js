@@ -149,10 +149,12 @@ export default function NetView({selected,setSelected,data,setData,props}) {
         // graphRef.current.zoomOut();
       }
     };
+    const _data = {nodes:[],edges:[]}
+
     // useEffect(()=>{setData({nodes:_data.nodes,edges:_data.egdges})},[])
     return(
     <div className="topology">
-      {(data != {nodes:[],edges:[]})?
+      {(data.nodes.length != 0)?
       <Grid>
         <Grid item md={7} style={{ display: "flex" }}>
           <Network
@@ -280,7 +282,7 @@ export default function NetView({selected,setSelected,data,setData,props}) {
         </Grid>
       </Grid> */}
       </Grid>:
-      <div className="networkError"><h1>Elastic Connection settings needed</h1></div>}
+      <div className="networkError"><h1>No Machines Set Elastic Connection settings</h1></div>}
     </div>
   )
 }

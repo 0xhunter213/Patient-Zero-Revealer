@@ -3,7 +3,7 @@ import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Inpu
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import { API_URL,DEBUG } from '../constants';
-export default function PatientZero({modal,toggle,props}) {
+export default function PatientZero({modal,toggle,data,setData,props}) {
   const [username,setUsername] = useState(null);
   const [ip,setIp] = useState(null);
   const [date,setDate] = useState(null);
@@ -21,29 +21,35 @@ export default function PatientZero({modal,toggle,props}) {
       timestamp:date}
     }).then(
       res=>{
+        console.log(res.data)
         if(res.data.message){
           setLoading(false);
           setInfo(true);
           setMessage(res.data.message);
           setTimeout(infoToggle,5000);
         }else{
-        let data = props.data;
+        console.log(data.data);
+        var detectData = {nodes:data.data.nodes,edges:data.data.edges};
         console.log("pzero api data: ",res.data);
-        data.filter((val,id) => {
-          if(id == res.data.id){
+        console.log("data we change: ",detectData)
+        detectData.nodes.forEach(element => {
+          if(element.id == res.data.id){
             // change image to be compromised
-            val.infected_first = true;
-            val.image = "https://raw.githubusercontent.com/MEhrn00/Havoc/blob/main/client/Data/resources/win10-8-icon-high.png"
+            console.log("find it")
+            element.infected_first = true;
+            element.image = "https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon-high.png"
           }
         });
-
-        props.setData(data);
+        data.setData(detectData);
+        console.log("data:",detectData)
         setLoading(false)
         toggle();
+        console.log("everything done")
       }
       }
     ).catch(
       e => {
+        console.log("[X] Erro:",e)
         setLoading(false);
         setErr(true);
       }

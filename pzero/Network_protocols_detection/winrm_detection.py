@@ -46,6 +46,7 @@ def WinRM_detection(es,user=None,ip_source=None,timestamp=None):
         }})
 
     event_winrm_rquest = event_searching(es,query=search_query)
+    print(event_winrm_rquest)
     if event_winrm_rquest != None:
         # message of event contains ip address of attacker machine
         source_machine_info = re.search(r'clientIP:',event_winrm_rquest["message"])
@@ -65,18 +66,19 @@ def WinRM_detection(es,user=None,ip_source=None,timestamp=None):
                         {"match":{"event.code": "6"}},
                         #{"match":{"event.action":"WSMan API Initialize"}}
                     ],
-                    "filter":[
-                        {"range":{
-                            "@timestamp":{
-                                "gte":timestamp_delta(event_winrm_rquest["@timestamp"],minutes=1),
-                                "lte":event_winrm_rquest["@timestamp"],
-                            }
-                        }}
-                    ]
+                    # "filter":[
+                    #     {"range":{
+                    #         "@timestamp":{
+                    #             "gte":timestamp_delta(event_winrm_rquest["@timestamp"],minutes=1),
+                    #             "lte":event_winrm_rquest["@timestamp"],
+                    #         }
+                    #     }}
+                    # ]
                 }
             }
 
             event_wsman_init = event_searching(es,query=search_query)
+            print(event_wsman_init)
             if event_wsman_init:
                 return event_wsman_init
             else:

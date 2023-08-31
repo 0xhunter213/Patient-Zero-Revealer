@@ -31,9 +31,9 @@ function App() {
           )
          
         }
-        console.log("data: ",{nodes:nodes?nodes:[],edges:edges?edges:[]})
         
         setData({nodes:nodes?nodes:[],edges:edges?edges:[]})
+        console.log("data",data)
       }
     ).catch(e=>{
       setData(data)
@@ -47,7 +47,7 @@ function App() {
     <div className="App">
         <SideBar selected={selected} setSelected={setSelected}/>
         <NetView selected={selected} setSelected={setSelected} data={data} setData={setData}/>
-        <ToolBar props={{data:data,setData:setData}}/>
+        <ToolBar  data={data} setData={setData}/>
 
     </div>
   );
