@@ -14,6 +14,7 @@ es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
 # searching for event with query
 def event_searching(es=es,query={},sort={"@timestamp":{"order":"desc"}},all=False):
     if es:
+        es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",ELASTIC_PASSWORD))
         r = es.search(index=INDEX_PATTERN,query=query,sort=sort)
         if r["hits"]["total"]["value"] != 0:
             if all:

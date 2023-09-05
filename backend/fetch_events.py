@@ -34,25 +34,45 @@ async def retrieve_netwrok_tpoplogy(es):
     data = {"nodes":[],"edges":[]}
     search_query = {
             "bool":{
-                "must":[{"match":{"event.code":"3"}}]
+                "must":[
+                    {"match":{"event.code":"3"}},
+                    {"match":{"network.protocol": "https"}},# use network protocol = https to avoid source.ip in IPV6 format
+                ],
             }
-    }
+   }
     
-    events = event_searching(es,query=search_query,all=True)
-
-
     nodes = {}
-    for evt in events:
+    event = event_searching(es,query=search_query)
+    
+    hosts = []
+    while event != None:
+        # list all available ip address till now
         ip_addresses = [item["ip"] for item in data["nodes"]]
-        if (evt["source"]["ip"] not in ip_addresses) and (not re.search(r":",evt["source"]["ip"])):
-            data["nodes"].append(data_format(evt))
-            nodes[str(evt["source"]["ip"])] = data_format(evt)
 
+        if (event["source"]["ip"] not in ip_addresses) and (not re.search(r":",event["source"]["ip"])):
+            data["nodes"].append(data_format(event))
+            nodes[str(event["source"]["ip"])] = data_format(event)
+            hosts.append(event["winlog"]["computer_name"])
+        elif event["winlog"]["computer_name"] in hosts:
+            # if get a host already captured with break the loop
+            break
+
+        search_query = {
+            "bool":{
+                "must":[{"match":{"event.code":"3"}},
+                {"match":{"network.protocol": "https"}}],
+                "must_not":[{"match":{"source.ip":event["source"]["ip"]}}]
+            }
+        }
+        event = event_searching(es,query=search_query)
+
+    # Structure the aggregated data in a format that the frontend is familiar with
     for ip_src in ip_addresses:
         rst_ips = ip_addresses.copy()
         rst_ips.pop(ip_addresses.index(ip_src))
         for ip_dest in rst_ips:
                 # add edges machine to elastic if you wish to add it
+                # i have done it using frontend (react)
             search_query = {
                 "bool":{
                     "must":{"match":{"source.ip":ip_src}},
@@ -72,4 +92,5 @@ async def retrieve_netwrok_tpoplogy(es):
 
 if __name__ == "__main__":
     es = Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
+    # this is test for get network topology machines alread have a logs on elastic server
     print(asyncio.run(retrieve_netwrok_tpoplogy(es)))

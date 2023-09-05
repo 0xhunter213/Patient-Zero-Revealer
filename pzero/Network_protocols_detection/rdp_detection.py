@@ -42,9 +42,10 @@ def RDP_detection(es,user=None,ip_source=None,timestamp=None):
         # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
                 "@timestamp":{
-                    "gte":timestamp_delta(hours=24),
+                    "gte":timestamp_delta(hours=72),
                 }
         }}) 
+        #print("done")
     # searching results
     # exisit item with event ID 4624 type 10 searched
     # also we can use timestamp or machine `ip` `name` ...
