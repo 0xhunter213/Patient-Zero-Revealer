@@ -7,7 +7,7 @@ from database import SessionLocal,engine
 from sqlalchemy.orm import Session
 from schemas import ElasticCreds,Infected
 from models import Base
-from crud import update_creds,get_creds,create_creds,get_infected,update_infected,insert_infected,delete
+from crud import get_creds,create_creds,get_infected,update_infected,insert_infected,delete,delete_creds,update_creds
 from Elk import event_searching
 from Revealer import pzero_revealer
 
@@ -83,14 +83,14 @@ async def elastic(creds : ElasticCreds, db: Session = Depends(get_db)):
         temp solution to store elastic creds (for cloud)
     """
     obj = get_creds(db,creds.id)
-    delete(db,id=1)
+    infect = get_infected(db,id=1)
     print("get object:",obj)
     if obj:
-        updated_obj = update_creds(db,creds)
-        return {"message":"Elastic Configuration have Updated!"}
-    else:
-        obj=create_creds(db,creds)
-        return {"message":"Elastic Congiguration have Created"}
+        update_creds(db,creds=creds)
+    if infect:
+        delete(db,id=1)
+    obj=create_creds(db,creds)
+    return {"message":"Elastic Congiguration have Created"}
     
 
 
@@ -139,3 +139,15 @@ async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str
         return data_format(event_init_access)
     else:
         return {"message":"No patient zero for this parameters"}
+    
+@app.post("/clear")
+async def clear(db:Session=Depends(get_db)):
+    obj = get_creds(db,id=1)
+    infect = get_infected(db,id=1)
+
+    if obj:
+        delete_creds(db,id=1)
+    if infect:
+        delete(db,id=1)
+    
+    return {"message":"Session cleared!"}

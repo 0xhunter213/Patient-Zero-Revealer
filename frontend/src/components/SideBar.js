@@ -1,10 +1,18 @@
 import HeadersSide from './HeaderSide';
 import React, { useEffect, useState } from 'react';
 import "../assests/css/SideBar.css";
-import { Collapse,CardBody, Card } from 'reactstrap';
+import { Collapse,CardBody, Card,Button } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import { API_URL,DEBUG } from '../constants';
+import axios from 'axios';
 export default function SideBar({selected,setSelected,props}) {
+  const clearSession = async ()=>{
+    await axios.post(`${API_URL[DEBUG]}clear`).then(
+      res=>{
+        console.log(res.data)
+      }
+    ).catch(e=>{console.error(e)})
+  }
   return (
     <div  className='sidebar'>
     <HeadersSide/>
@@ -45,6 +53,15 @@ export default function SideBar({selected,setSelected,props}) {
         </Collapse>
         :<></>}
       </div>  
+      <div className='clear'>
+      <Button  
+      color="danger"
+      outline
+      onClick={clearSession}
+      >
+        Clear Session
+      </Button>
+      </div>
     </div>
     
   )

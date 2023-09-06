@@ -14,3 +14,7 @@
     justify-content: flex-start;
 
 }
+.clear{
+    position: absolute;
+    bottom: 5%;    
+}

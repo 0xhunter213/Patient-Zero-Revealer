@@ -18,6 +18,9 @@ def update_creds(db: Session,creds:schemas.ElasticCreds):
     db.commit()
     return db_creds
 
+def delete_creds(db:Session,id:int):
+    db.query(models.ElasticCredsModel).filter(models.ElasticCredsModel.id == id).delete()
+    db.commit()
 
 def get_infected(db:Session,id: int):
     return db.query(models.Infected).filter(models.Infected.id == id).first()
@@ -36,5 +39,4 @@ def update_infected(db:Session,machine:schemas.Infected):
 def delete(db:Session,id:int):
     db.query(models.Infected).filter(models.Infected.id == id).delete()
     db.commit()
-    return {"msg":"OK"}
     
