@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {Button,Modal,ModalHeader,ModalBody,ModalFooter,Form,FormGroup,Label,Input,Col,Spinner,Alert} from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import { API_URL,DEBUG } from '../constants';
-export default function PatientZero({modal,toggle,data,setData,props}) {
+export default function PatientZero({modal,toggle,data,setData}) {
   const [username,setUsername] = useState(null);
   const [ip,setIp] = useState(null);
   const [date,setDate] = useState(null);
@@ -15,36 +15,33 @@ export default function PatientZero({modal,toggle,data,setData,props}) {
   const onDismiss = () => setErr(false);
   const infoToggle = () => setInfo(false);
   const pzeroDetection = async ()=>{
-    await axios.get(`${API_URL[DEBUG]}pzero`,{params:{
+    await axios.post(`${API_URL[DEBUG]}pzero`,null,{params:{
       username:username,
       ip_address:ip,
       timestamp:date}
     }).then(
-      res=>{
-        console.log(res.data)
+      res =>{
         if(res.data.message){
           setLoading(false);
           setInfo(true);
           setMessage(res.data.message);
           setTimeout(infoToggle,5000);
         }else{
-        console.log(data.data);
         var detectData = {nodes:data.data.nodes,edges:data.data.edges};
-        console.log("pzero api data: ",res.data);
-        console.log("data we change: ",detectData)
         detectData.nodes.forEach(element => {
           if(element.id == res.data.id){
             // change image to be compromised
             console.log("find it")
             element.infected_first = true;
             element.image = "https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon-high.png"
+            element.label = element.label+" (patient zero)"
+            
           }
         });
+      
         data.setData(detectData);
-        console.log("data:",detectData)
         setLoading(false)
         toggle();
-        console.log("everything done")
       }
       }
     ).catch(
@@ -59,10 +56,10 @@ export default function PatientZero({modal,toggle,data,setData,props}) {
     if (username){
       setLoading(true);
       pzeroDetection();
-    }
+    } 
   }
   return (
-    <Modal isOpen={modal} toggle={toggle} {...props} fullscreen={"lg"} size='lg'> 
+    <Modal isOpen={modal} toggle={toggle} fullscreen={"lg"} size='lg'> 
     <ModalHeader 
       toggle={toggle} 
       style={{
@@ -144,7 +141,7 @@ export default function PatientZero({modal,toggle,data,setData,props}) {
         </>}
     </ModalBody>
     <ModalFooter>
-      <Button color='primary' onClick={detect} outline>
+      <Button color='primary' onClick={() => {detect()}} outline>
         Detect
       </Button>{' '}
       <Button color="danger" onClick={toggle} outline>

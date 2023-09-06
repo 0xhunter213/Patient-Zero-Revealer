@@ -5,9 +5,9 @@ from elasticsearch import Elasticsearch
 from fetch_events import retrieve_netwrok_tpoplogy,data_format
 from database import SessionLocal,engine
 from sqlalchemy.orm import Session
-from schemas import ElasticCreds
+from schemas import ElasticCreds,Infected
 from models import Base
-from crud import update_creds,get_creds,create_creds
+from crud import update_creds,get_creds,create_creds,get_infected,update_infected,insert_infected,delete
 from Elk import event_searching
 from Revealer import pzero_revealer
 
@@ -37,6 +37,8 @@ app.add_middleware(
 CLOUD_ID = Config("CLOUD_ID")
 PASSWORD = Config("ELASTIC_PASSWORD")
 
+
+
 def connect_es(db: Session = Depends(get_db)):
     creds = get_creds(id=1,db=db)
     if creds:
@@ -53,6 +55,8 @@ async def index(db: Session = Depends(get_db)):
     try:
         # check for creds in db 
         creds = get_creds(id=1,db=db)
+        infect = get_infected(db=db,id=1)
+
         if creds:
             es = Elasticsearch(cloud_id=creds.apikey,http_auth=(creds.username,creds.password))
         elif CLOUD_ID and PASSWORD:
@@ -60,6 +64,14 @@ async def index(db: Session = Depends(get_db)):
             creds = create_creds(db=db,credsItem=creds_obj)
             es= Elasticsearch(cloud_id=CLOUD_ID,http_auth=("elastic",PASSWORD))
         data = await retrieve_netwrok_tpoplogy(es)
+        if infect != None:
+            for item in data["nodes"]:
+                print("item on test ",item["id"])
+                if item["id"] == infect.name:
+                    item["image"] = "https://raw.githubusercontent.com/MEhrn00/Havoc/main/client/Data/resources/win10-8-icon-high.png"
+                    item["label"] = item["label"]+" (patient zero)"
+                    break
+
         return data
     except:
          return data   
@@ -71,6 +83,7 @@ async def elastic(creds : ElasticCreds, db: Session = Depends(get_db)):
         temp solution to store elastic creds (for cloud)
     """
     obj = get_creds(db,creds.id)
+    delete(db,id=1)
     print("get object:",obj)
     if obj:
         updated_obj = update_creds(db,creds)
@@ -110,12 +123,19 @@ async def search_event(event_code: int ,username: str | None = None,ip_address: 
     return event_searching(es=es,query=search_query)
 
 
-@app.get("/pzero")
+@app.post("/pzero")
 async def pzero_detection(username:str,ip_address:str| None = None,timestamp:str | None = None,db: Session = Depends(get_db)):
     es = connect_es(db)
     event_init_access = pzero_revealer(es,username,ip_address,timestamp)
     print("the events",event_init_access)
     if event_init_access:
+        infctd = get_infected(db,id=1)
+        patient_zero = data_format(event_init_access)
+        inst = Infected(id=1,name=patient_zero["id"],timestamp=event_init_access["@timestamp"])
+        if infctd:
+            updated = update_infected(db,inst)
+        else:
+            insert_infected(db,inst)
         return data_format(event_init_access)
     else:
         return {"message":"No patient zero for this parameters"}

@@ -9,3 +9,8 @@ class ElasticCredsModel(Base):
     username=Column(String,unique=True,index=True)
     password=Column(String,index=True)
 
+class Infected(Base):
+    __tablename__= "infected"
+    id = Column(Integer,primary_key=True,index=True,autoincrement=True)
+    name = Column(String)
+    timestamp = Column(String)

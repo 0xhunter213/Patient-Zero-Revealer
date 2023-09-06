@@ -11,7 +11,6 @@ const ToolBar = (data,setData,props)=>{
   const [modal , setModal] = useState(false);
   const [pzmodal,setPzModal] = useState(false);
   const [esmodal,setEsmodal]=useState(false);
-
   const toggle = () =>{setModal(!modal)};
   const pztoggle= () =>{setPzModal(!pzmodal)};
   const estoggle = ()=>{setEsmodal(!esmodal)};
@@ -24,7 +23,7 @@ const ToolBar = (data,setData,props)=>{
         </div>
         <p>Search</p>
       </div>
-      <PatientZero modal={pzmodal} toggle={pztoggle}  data={data} setData={setData} props={props}/>
+      <PatientZero modal={pzmodal} toggle={pztoggle}  data={data} setData={setData}/>
       <div className='patient-zero' onClick={pztoggle}>
         <div style={{"width":"50px","height":"50px"}}>
           <PiDetectiveFill size={"lg"} color='#07539D'/>

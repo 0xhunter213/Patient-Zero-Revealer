@@ -16,6 +16,9 @@ function App() {
       response =>{
         let nodes = response.data.nodes;
         let edges = response.data.edges;
+
+      // console.log({nodes:nodes?nodes:[],edges:edges?edges:[]})
+      console.log("Data from app.js: ",data)
         if(nodes.length !== 0){
           nodes.forEach(element => {
             edges.push({from:element.id,to:"elastic",color:"green"})
@@ -32,30 +35,12 @@ function App() {
           )
          
         }
+        console.log("setting new data")
 
-        console.log({nodes:nodes?nodes:[],edges:edges?edges:[]})
-        if((data.nodes.length === 0 && nodes.length > 0) || (nodes.length > data.nodes.length)){
-          setData({nodes:nodes?nodes:[],edges:edges?edges:[]})
-          console.log("data",data)
-        }else{
-          if(nodes.length === data.nodes.length){
-            let change = false;
-            for(var i=0;i<nodes.length;i++){
-              let obj1=nodes[i];
-              let obj2=data[i];
-              if(obj1.id !== obj2.id){
-                change=true
-              }
-            }
-            if(change){
-              setData({nodes:nodes?nodes:[],edges:edges?edges:[]});
-            }
-          }
-        }
-
+        setData({nodes:nodes?nodes:[],edges:edges?edges:[]});
       }
     ).catch(e=>{
-      setData(data)
+     setData(data);
     })
   }
   useEffect(()=>{

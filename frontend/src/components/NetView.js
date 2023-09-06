@@ -149,9 +149,7 @@ export default function NetView({selected,setSelected,data,setData,props}) {
         // graphRef.current.zoomOut();
       }
     };
-    const _data = {nodes:[],edges:[]}
 
-    // useEffect(()=>{setData({nodes:_data.nodes,edges:_data.egdges})},[])
     return(
     <div className="topology">
       {(data.nodes.length != 0)?

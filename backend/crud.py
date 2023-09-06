@@ -18,3 +18,23 @@ def update_creds(db: Session,creds:schemas.ElasticCreds):
     db.commit()
     return db_creds
 
+
+def get_infected(db:Session,id: int):
+    return db.query(models.Infected).filter(models.Infected.id == id).first()
+
+def insert_infected(db:Session,machine:schemas.Infected):
+    db_machine = models.Infected(name=machine.name,timestamp=machine.timestamp)
+    db.add(db_machine)
+    db.commit()
+    db.refresh(db_machine)
+
+def update_infected(db:Session,machine:schemas.Infected):
+    db_machine = db.query(models.Infected).filter(models.Infected.id == id).update(values={"name":machine.name,"timestamp":machine.timestamp})  
+    db.commit()
+    return db_machine
+
+def delete(db:Session,id:int):
+    db.query(models.Infected).filter(models.Infected.id == id).delete()
+    db.commit()
+    return {"msg":"OK"}
+    

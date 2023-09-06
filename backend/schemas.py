@@ -9,3 +9,8 @@ class ElasticCreds(BaseModel):
     class Config:
         orm_mode = True
 
+
+class Infected(BaseModel):
+    id : int
+    name : str
+    timestamp: str
