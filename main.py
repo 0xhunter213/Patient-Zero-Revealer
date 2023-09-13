@@ -268,7 +268,7 @@ def SSH_connections(user=None,ip_source=None,timestamp=None):
         }})
 
 
-    event_ssh = event_searching(search_query)
+    event_ssh = event_searching(query=search_query)
     
     if event_ssh:
         return event_ssh
@@ -328,7 +328,7 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    events_sercice_installed = event_searching(search_query,all=True)
+    events_sercice_installed = event_searching(query=search_query,all=True)
     returned_event = None
     if events_sercice_installed:
         for event in events_sercice_installed:
@@ -373,8 +373,8 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
                 }
             }
             # with the searching query above now searching for 4624 event and 3 
-            event_4624 = event_searching(search_query_event_4624)
-            event_3 = event_searching(search_query_event_3)
+            event_4624 = event_searching(query=search_query_event_4624)
+            event_3 = event_searching(query=search_query_event_3)
 
             if event_3 and event_4624:
                 return event_4624 # return login event bcz it contain all infos of user
@@ -432,7 +432,7 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
             }
         }})
 
-    event_epmap = event_searching(search_query)
+    event_epmap = event_searching(query=search_query)
     # if epmap exist we look for 4624 forward and event id 3 backward by 5 seconds range and comparing source port from two events
     if event_epmap:
         machine_ip_dest = event_epmap["host"]["ip"][1] # ip address of destination machine target
@@ -459,7 +459,7 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
                 ]
             }
         }
-        event_4624 = event_searching(search_query_4624)
+        event_4624 = event_searching(query=search_query_4624)
         #delta time range substration of 1 second bcz SMB connection heppening before it
         backwarding_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=1)
         backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -483,7 +483,7 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
                 }
         }
         
-        event_3 = event_searching(search_query_3)
+        event_3 = event_searching(query=search_query_3)
         if event_3:
             return event_4624
         else:
@@ -539,7 +539,7 @@ def Interactive_login(user=None,timestamp=None):
             }
         }})
 
-    event = event_searching(search_query)
+    event = event_searching(query=search_query)
     if event:
         return event
     else:
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     # cli configuration arguments and options for tool usage
     parser = argparse.ArgumentParser(description="Patient Zero Revealer a tool to detect first infected machine\
                             in the netwrok using Windows Event logs")
-    parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store")
+    parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store",required=True)
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
     parser.add_argument("-t","--timestamp",help="start time for analysing events",action="store")
     args = parser.parse_args()

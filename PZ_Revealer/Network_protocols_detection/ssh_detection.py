@@ -47,7 +47,7 @@ def SSH_detection(es,user=None,ip_source=None,timestamp=None):
         # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
-                "gte":timestamp_delta(hours=72),
+                "gte":timestamp_delta(hours=24),
             }
         }})
 

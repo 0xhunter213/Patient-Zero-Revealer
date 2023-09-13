@@ -14,7 +14,8 @@ def create_creds(db:Session,credsItem: schemas.ElasticCreds):
     return db_creds
 
 def update_creds(db: Session,creds:schemas.ElasticCreds):
-    db_creds = db.query(models.ElasticCredsModel).filter(models.ElasticCredsModel.id == creds.id).update(values={"apikey":creds.apikey,"username":creds.username,"password":creds.password})
+    print(creds)
+    db_creds = db.query(models.ElasticCredsModel).filter(models.ElasticCredsModel.id == creds.id).update({"apikey":creds.apikey,"username":creds.username,"password":creds.password})
     db.commit()
     return db_creds
 
@@ -32,7 +33,7 @@ def insert_infected(db:Session,machine:schemas.Infected):
     db.refresh(db_machine)
 
 def update_infected(db:Session,machine:schemas.Infected):
-    db_machine = db.query(models.Infected).filter(models.Infected.id == id).update(values={"name":machine.name,"timestamp":machine.timestamp})  
+    db_machine = db.query(models.Infected).filter(models.Infected.id == id).update({"name":machine.name,"timestamp":machine.timestamp})  
     db.commit()
     return db_machine
 

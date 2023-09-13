@@ -85,11 +85,15 @@ async def elastic(creds : ElasticCreds, db: Session = Depends(get_db)):
     obj = get_creds(db,creds.id)
     infect = get_infected(db,id=1)
     print("get object:",obj)
+    
     if obj:
         update_creds(db,creds=creds)
+    else:
+        obj=create_creds(db,creds)
+
     if infect:
         delete(db,id=1)
-    obj=create_creds(db,creds)
+    
     return {"message":"Elastic Congiguration have Created"}
     
 

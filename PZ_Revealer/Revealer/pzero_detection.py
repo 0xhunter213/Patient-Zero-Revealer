@@ -36,7 +36,7 @@ def Interactive_login(es,user=None,ip_source=None,timestamp=None):
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":timestamp_delta(timestamp,hours=72),
+                "gte":timestamp_delta(timestamp,hours=24),
             }
         }})
     # adding this line for testing need to just get event of last 24 hours
@@ -55,6 +55,8 @@ def Interactive_login(es,user=None,ip_source=None,timestamp=None):
     else:
         return None
 
+# change detection method for consequences test for all connection and then looks to source ip
+# use session id ("no idea till now ...")
 
 def pzero_revealer(es,user=None,ip_source=None,timestamp=None):
     '''

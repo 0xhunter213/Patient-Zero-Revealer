@@ -17,7 +17,8 @@ export default function ElasticConnection({modal,toggle,props}) {
       password:pwd
     }).then(
       (response) => {
-        if(response.data === {"message":"Elastic Configuration have Updated!" || response.data === {"message":"Elastic Congiguration have Created"}}){
+        console.log(response.data)
+        if(response.data.message === "Elastic Configuration have Updated!" || response.data.message === "Elastic Congiguration have Created" ){
             toggle();
         }else{
           console.error("Connection Faild!");
