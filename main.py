@@ -3,6 +3,7 @@ from decouple import config
 from datetime import datetime, timedelta
 import re
 import argparse
+from elasticsearch_dsl import search
 # Import Deployment Secret keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
@@ -19,7 +20,8 @@ def event_searching(es=es,query={},sort={"@timestamp":{"order":"desc"}},all=Fals
         if r["hits"]["total"]["value"] != 0:
             if all:
                 # return all the events 
-                events = [ evt["_source"] for evt in r["hits"]["hits"]] # return only _source item from each event in the list
+                print("array returned")
+                events = [evt["_source"] for evt in r["hits"]["hits"]] # return only _source item from each event in the list
                 return events
             # return only the last events
             event=r["hits"]["hits"][0]["_source"]
@@ -78,7 +80,7 @@ def print_event(event):
     except:
         print(event)
 
-def RDP_connections(user=None,ip_source=None,timestamp=None):
+def RDP_connections(user=None,ip_source=None,timestamp=None,all=False):
     '''
         Remote Desktop connections for a specifc user parameters
     '''
@@ -105,41 +107,30 @@ def RDP_connections(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
+                #"gte":min_timestamp,
             }
         }})
-    else:
-        # adding a range timestamp to just analysis the last 48 hours events
-        timeline = datetime.now() - timedelta(hours=48)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-                "@timestamp":{
-                    "gte":min_timestamp,
-                }
-        }}) 
-    # searching results
-    # exisit item with event ID 4624 type 10 searched
-    # also we can use timestamp or machine `ip` `name` ...
 
-    event_4624_rdp = event_searching(query=search_query)
+
+    event_4624_rdp = event_searching(query=search_query,all=all)
 
 
     if event_4624_rdp: 
         return event_4624_rdp
     else:
         search_query["bool"]["must"][1]= {"match":{"winlog.event_data.LogonType":"7"}}
-        event_4624_rdp = event_searching(query=search_query)
+        event_4624_rdp = event_searching(query=search_query,all=all)
         if event_4624_rdp:
             return event_4624_rdp
         print(f"No RDP connections with this Parameters\n")
         return None
 
-def WinRM_connections(user=None,ip_source=None,timestamp=None):
+def WinRM_connections(user=None,ip_source=None,timestamp=None,all=False):
     '''
         Windows Remote Management Connection depending to user or ip source of suspicious machine or with timestamp
     '''
@@ -161,68 +152,97 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        #time changing here for new metology
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
-            }
-        }})
-    # adding this line for testing need to just get event of last 24 hours
-    else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
+                #"gte":min_timestamp,
             }
         }})
 
-    event_winrm_rquest = event_searching(query=search_query)
+    event_winrm_rquest = event_searching(query=search_query,all=all)
+    winrm_events = []
     if event_winrm_rquest != None:
         # message of event contains ip address of attacker machine
-        source_machine_info = re.search(r'clientIP:',event_winrm_rquest["message"])
+        if all:
+            for event in event_winrm_rquest:
+                source_machine_info = re.search(r'clientIP:',event["message"])
+                if source_machine_info:
+                    # winrm shell was initialized by a machine out of network
+                    winrm_events.append(event)
+                else:
+                    # winrm was started by a machine within network
+                    # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
 
-        if source_machine_info:
-            # winrm shell was initialized by a machine out of network
-            return event_winrm_rquest
+                    timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
+                    timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                    search_query = {
+                        "bool":{
+                            "must":[
+                                {"match":{"event.code": "6"}},
+                                #{"match":{"event.action":"WSMan API Initialize"}}
+                            ],
+                            "filter":[
+                                {"range":{
+                                    "@timestamp":{
+                                        "gte":event["@timestamp"],
+                                        "lte":timestamp,
+                                    }
+                                }}
+                            ]
+                        }
+                    }
+
+                    event_wsman_init = event_searching(query=search_query)
+
+                    if event_wsman_init:
+                        winrm_events.append(event)
+            
+            return winrm_events
         else:
-            # winrm was started by a machine within network
-            # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
+            source_machine_info = re.search(r'clientIP:',event_winrm_rquest["message"])
 
-            timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
-            timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            search_query = {
-                "bool":{
-                    "must":[
-                        {"match":{"event.code": "6"}},
-                        #{"match":{"event.action":"WSMan API Initialize"}}
-                    ],
-                    "filter":[
-                        {"range":{
-                            "@timestamp":{
-                                "gte":event_winrm_rquest["@timestamp"],
-                                "lte":timestamp,
-                            }
-                        }}
-                    ]
-                }
-            }
-
-            event_wsman_init = event_searching(query=search_query)
-
-            if event_wsman_init:
-                return event_wsman_init
+            if source_machine_info:
+                # winrm shell was initialized by a machine out of network
+                return event_winrm_rquest
             else:
-                print("No WSMan session Initialize event")
-                return None
+                # winrm was started by a machine within network
+                # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
+
+                timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
+                timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                search_query = {
+                    "bool":{
+                        "must":[
+                            {"match":{"event.code": "6"}},
+                            #{"match":{"event.action":"WSMan API Initialize"}}
+                        ],
+                        "filter":[
+                            {"range":{
+                                "@timestamp":{
+                                    "gte":event_winrm_rquest["@timestamp"],
+                                    "lte":timestamp,
+                                }
+                            }}
+                        ]
+                    }
+                }
+
+                event_wsman_init = event_searching(query=search_query)
+
+                if event_wsman_init:
+                    return event_wsman_init
+                else:
+                    print("No WSMan session Initialize event")
+                    return None
 
     else:
         print("No WinRM connections with this Paremeters\n")
         return None
 
-def SSH_connections(user=None,ip_source=None,timestamp=None):
+def SSH_connections(user=None,ip_source=None,timestamp=None,all=False):
     '''
         ssh connection events
         event id is 4 also sysmon there is an event with id 4 so we diffrence between them with message item
@@ -249,33 +269,25 @@ def SSH_connections(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
-            }
-        }})
-    # adding this line for testing need to just get event of last 24 hours
-    else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
+                #"gte":min_timestamp,
             }
         }})
 
 
-    event_ssh = event_searching(query=search_query)
+
+    event_ssh = event_searching(query=search_query,all=all)
     
     if event_ssh:
         return event_ssh
     else:
         return None
 
-def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
+def PSSMBexec_connections(user=None,ip_source=None,timestamp=None,all=False):
     '''
     Detection of a potential PsExec connection based on the usage of SMB\
     This function looks for all events with ID 7045 (service installed) and events that came after event 3 with\
@@ -285,13 +297,6 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
     # looking for sequence of events 3,4624,4672,7045
     # need argument for searching cause it possible there's a lot of 7045
     # so need to specify the search
-
-    #user is required arg    
-    try:
-        assert user
-    except AssertionError:
-        print("[X] username required !")
-        return None
     
     # search for the serveci event id == 7045
     search_query ={
@@ -310,26 +315,19 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
     
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
-            }
-        }})
-    # adding this line for testing need to just get event of last 24 hours
-    else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
+                #"gte":min_timestamp,
             }
         }})
 
+
     events_sercice_installed = event_searching(query=search_query,all=True)
     returned_event = None
+    returned_events = []
     if events_sercice_installed:
         for event in events_sercice_installed:
             backwarding_timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=5)
@@ -377,26 +375,84 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None):
             event_3 = event_searching(query=search_query_event_3)
 
             if event_3 and event_4624:
-                return event_4624 # return login event bcz it contain all infos of user
+                if all:
+                    returned_events.append(event_4624)
+                else:
+                    return event_4624 # return login event bcz it contain all infos of user
             elif event_4624:
                 #Save the login event because sometimes event 3 may fall outside our specified time range. Not sure here
-                returned_event = event_4624 
+                if all:
+                    returned_events.append(event_4624)
+                else:
+                    returned_event = event_4624
         
         # if we dont find any correct sequence with return a valid 4624 event came before 7045
-        return returned_event 
+        return returned_event if not all else returned_events
     else:
         return None
-def WMI_connections(user=None,ip_source=None,timestamp=None):
+    
+def WMI_events_checks(event_epmap):
+    machine_ip_dest = event_epmap["host"]["ip"][1] # ip address of destination machine target
+    machine_ip_src = event_epmap["source"]["ip"] # ip address of source attacker machine
+    # delta time range used for searching adding 1 second to epmap event bcz logon happening after it
+    delta_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(seconds=1)
+    delta_timestamp_4624 = delta_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    # search query for 4624 with user parmaters
+    search_query_4624={
+            "bool":{
+                "must":[
+                    {"match":{"event.code":"4624"}},
+                    {"match":{"winlog.event_data.TargetUserName":user}},
+                    {"match":{"source.ip":machine_ip_src}},
+                    {"match":{"host.ip":machine_ip_dest}}
+                ],
+                "filter":[
+                    {"range":{
+                        "@timestamp":{
+                            "lte":delta_timestamp_4624,
+                            "gt":event_epmap["@timestamp"] # range time bigger then event epmap timestamp and less then it adding 1 second
+                        }
+                    }}
+                ]
+            }
+    }
+    event_4624 = event_searching(query=search_query_4624)
+    #delta time range substration of 1 second bcz SMB connection heppening before it
+    backwarding_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=1)
+    backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            # event id 3
+    search_query_3 = {
+            "bool":{
+                    "must":[
+                        {"match":{"event.code":"3"}},
+                        {"match":{"network.protocol":"microsoft-ds"}},
+                        {"match":{"related.ip":machine_ip_dest}},
+                        {"match":{"source.ip":machine_ip_src}}
+                    ],
+                    "filter":[
+                        {"range":{
+                            "@timestamp":{
+                                "lte":event_epmap["@timestamp"],
+                                "gte":backwarding_timestamp
+                            }
+                        }}
+                    ]
+                }
+    }
+        
+    event_3 = event_searching(query=search_query_3)
+    if event_3:
+        return event_4624
+    else:
+        print("[X] No event 3 but there is 4624 events")
+        print_event(event_4624) # if there was a problem print event 4624 
+        return None
+
+def WMI_connections(user=None,ip_source=None,timestamp=None,all=False):
     """
         Detection utilization of wmiexec from impacket tool kit in the network\
         using event id 3,4672,4624
-    """
-    try:
-        assert user
-    except AssertionError:
-        print("[X] username required !")
-        return None
-    
+    """    
     # first find epmap connection
     search_query = {
         "bool":{
@@ -414,86 +470,31 @@ def WMI_connections(user=None,ip_source=None,timestamp=None):
 
     if timestamp != None:
         # searching with timestamp range
-        timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # timeline = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(hours=24)
+        # min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         search_query["bool"]["filter"].append({"range":{
             "@timestamp":{
                 "lte":timestamp,
-                "gte":min_timestamp,
-            }
-        }})
-    # adding this line for testing need to just get event of last 24 hours
-    else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
+                #"gte":min_timestamp,
             }
         }})
 
-    event_epmap = event_searching(query=search_query)
+
+    event_epmap = event_searching(query=search_query,all=all)
+    results_events = []
     # if epmap exist we look for 4624 forward and event id 3 backward by 5 seconds range and comparing source port from two events
-    if event_epmap:
-        machine_ip_dest = event_epmap["host"]["ip"][1] # ip address of destination machine target
-        machine_ip_src = event_epmap["source"]["ip"] # ip address of source attacker machine
-        # delta time range used for searching adding 1 second to epmap event bcz logon happening after it
-        delta_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(seconds=1)
-        delta_timestamp_4624 = delta_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        # search query for 4624 with user parmaters
-        search_query_4624={
-            "bool":{
-                "must":[
-                    {"match":{"event.code":"4624"}},
-                    {"match":{"winlog.event_data.TargetUserName":user}},
-                    {"match":{"source.ip":machine_ip_src}},
-                    {"match":{"host.ip":machine_ip_dest}}
-                ],
-                "filter":[
-                    {"range":{
-                        "@timestamp":{
-                            "lte":delta_timestamp_4624,
-                            "gt":event_epmap["@timestamp"] # range time bigger then event epmap timestamp and less then it adding 1 second
-                        }
-                    }}
-                ]
-            }
-        }
-        event_4624 = event_searching(query=search_query_4624)
-        #delta time range substration of 1 second bcz SMB connection heppening before it
-        backwarding_timestamp = datetime.strptime(event_epmap["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") - timedelta(seconds=1)
-        backwarding_timestamp = backwarding_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        # event id 3
-        search_query_3 = {
-            "bool":{
-                    "must":[
-                        {"match":{"event.code":"3"}},
-                        {"match":{"network.protocol":"microsoft-ds"}},
-                        {"match":{"related.ip":machine_ip_dest}},
-                        {"match":{"source.ip":machine_ip_src}}
-                    ],
-                    "filter":[
-                        {"range":{
-                            "@timestamp":{
-                                "lte":event_epmap["@timestamp"],
-                                "gte":backwarding_timestamp
-                            }
-                        }}
-                    ]
-                }
-        }
-        
-        event_3 = event_searching(query=search_query_3)
-        if event_3:
-            return event_4624
-        else:
-            print("[X] No event 3 but there is 4624 events")
-            print_event(event_4624) # if there was a problem print event 4624 
-            return None
+    if all:
+        for event in event_epmap:
+            rst = WMI_events_checks(event)
+            if rst:
+                results_events.append(rst)
+        return results_events
+    elif event_epmap:
+        return WMI_events_checks(event_epmap)
     else:
         return None
 
-def Interactive_login(user=None,timestamp=None):
+def Interactive_login(user=None,ip_source=None,timestamp=None):
     """
         detection of logon event id 4624 type 2 for interactive login
     """
@@ -529,15 +530,7 @@ def Interactive_login(user=None,timestamp=None):
                 "gte":min_timestamp,
             }
         }})
-    # adding this line for testing need to just get event of last 24 hours
-    else:
-        timeline = datetime.now() - timedelta(hours=24)
-        min_timestamp = timeline.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        search_query["bool"]["filter"].append({"range":{
-            "@timestamp":{
-                "gte":min_timestamp,
-            }
-        }})
+
 
     event = event_searching(query=search_query)
     if event:
@@ -610,6 +603,15 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
 
     return past_event
     
+def pzero_revealer(user=None,ip_source=None,timestamp=None):
+
+    assert user or ip_source
+
+    logon_events = []
+    logon_events.append(RDP_connections(user=user,all=True))
+    logon_events.append(W)
+    print(logon_events)
+
 if __name__ == "__main__":
 
     # cli configuration arguments and options for tool usage
@@ -619,11 +621,12 @@ if __name__ == "__main__":
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
     parser.add_argument("-t","--timestamp",help="start time for analysing events",action="store")
     args = parser.parse_args()
-    user= args.user # username required
+    user = args.user # username required
     ip_source = args.ip_source # ip source of a machine
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
     #analyzing events
-    event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    print_event(event)
+    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
+    # print_event(event)
+    print(WinRM_connections(user=user,all=True))
     print("DONE ")

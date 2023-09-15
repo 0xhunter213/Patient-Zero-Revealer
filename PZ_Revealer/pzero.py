@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 from elasticsearch import Elasticsearch
 from decouple import config
 from Revealer.pzero_detection import pzero_revealer
+
 # lookin for interactive logon
 
 if __name__ == "__main__":

@@ -72,6 +72,7 @@ def pzero_revealer(es,user=None,ip_source=None,timestamp=None):
 
     while event:
         event = rdp_detection.RDP_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
+        
         if event == None:
             # RDP connection event
             event = winrm_detection.WinRM_detection(es,user=target_user,ip_source=source_ip,timestamp=starting_time)
