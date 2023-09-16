@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import re
 import argparse
 from elasticsearch_dsl import search
+from functools import cmp_to_key    
 # Import Deployment Secret keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
@@ -32,12 +33,13 @@ def event_searching(es=es,query={},sort={"@timestamp":{"order":"desc"}},all=Fals
         return None
 
 # printing RDP event
-def print_event(event):
+
+def print_machine_infos(event):
     try:
         # get the event id to define the structre of the event
         event__code = event["event"]["code"]
-
-        if event__code == "4624":
+        print("id",event__code)
+        if event__code == "4624" and event["winlog"]["event_data"]["LogonType"] in ["10","7"]:
             print(f'''
                     RDP Connection:
                     Timestamp               : {event["@timestamp"]}\n\
@@ -48,8 +50,23 @@ def print_event(event):
                     Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
                     Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
                     Source Domain           : {event["source"]["domain"]}\n\
-                    Ip Addres Source        : {event["source"]["ip"]}\n''')
-        
+                    Ip Address Source       : {event["source"]["ip"]}\n\
+                    Channel                 : {event["event"]["provider"]}\n\
+''')
+        elif event__code == "4624":
+            print(f'''
+                    Interactive Logon:
+                    Timestamp               : {event["@timestamp"]}\n\
+                    Id                      : {event["user"]["id"]}\n\
+                    Username                : {event["user"]["name"]}\n\
+                    Domaine                 : {event["user"]["domain"]}\n\
+                    Host Name               : {event["host"]["hostname"]}\n\
+                    Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
+                    Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
+                    Source Domain           : {event["source"]["domain"]}\n\
+                    Ip Address Source       : {event["source"]["ip"]}\n\
+                    Channel                 : {event["event"]["provider"]}\n\
+''')
         elif event__code in ["91","6"]:
             print(f'''
                     WinRM Connection:
@@ -60,7 +77,7 @@ def print_event(event):
                     Host Name               : {event["host"]["hostname"]}\n\
                     Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
                     Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
-                    Connection              : {event["winlog"]["event_data"]["connection"]}\n\
+                    Channel                 : {event["event"]["provider"]}\n\
             ''')
         elif event__code == "4":
             print(f'''
@@ -73,11 +90,12 @@ def print_event(event):
                     Ip Address Host (IPV4)  : {event["host"]["ip"][1]}\n\
                     Ip Address Host (IPV6)  : {event["host"]["ip"][0]}\n\
                     Information             : {event["message"]}\n\
+                    Channel                 : {event["event"]["provider"]}\n\
             ''')
         
         # more events ? ...
 
-    except:
+    except Exception:
         print(event)
 
 def RDP_connections(user=None,ip_source=None,timestamp=None,all=False):
@@ -127,7 +145,6 @@ def RDP_connections(user=None,ip_source=None,timestamp=None,all=False):
         event_4624_rdp = event_searching(query=search_query,all=all)
         if event_4624_rdp:
             return event_4624_rdp
-        print(f"No RDP connections with this Parameters\n")
         return None
 
 def WinRM_connections(user=None,ip_source=None,timestamp=None,all=False):
@@ -169,77 +186,75 @@ def WinRM_connections(user=None,ip_source=None,timestamp=None,all=False):
         if all:
             for event in event_winrm_rquest:
                 source_machine_info = re.search(r'clientIP:',event["message"])
+
                 if source_machine_info:
                     # winrm shell was initialized by a machine out of network
-                    winrm_events.append(event)
+                    return event_winrm_rquest
                 else:
                     # winrm was started by a machine within network
                     # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
 
-                    timestamp = datetime.strptime(event["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
-                    timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+                    # timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
+                    # timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
                     search_query = {
                         "bool":{
                             "must":[
                                 {"match":{"event.code": "6"}},
                                 #{"match":{"event.action":"WSMan API Initialize"}}
                             ],
-                            "filter":[
-                                {"range":{
-                                    "@timestamp":{
-                                        "gte":event["@timestamp"],
-                                        "lte":timestamp,
-                                    }
-                                }}
-                            ]
+                            # "filter":[
+                            #     {"range":{
+                            #         "@timestamp":{
+                            #             "gte":timestamp_delta(event_winrm_rquest["@timestamp"],minutes=1),
+                            #             "lte":event_winrm_rquest["@timestamp"],
+                            #         }
+                            #     }}
+                            # ]
                         }
                     }
 
-                    event_wsman_init = event_searching(query=search_query)
-
+                    event_wsman_init = event_searching(es,query=search_query)
                     if event_wsman_init:
-                        winrm_events.append(event)
+                        winrm_events.append(event_wsman_init)
             
             return winrm_events
         else:
             source_machine_info = re.search(r'clientIP:',event_winrm_rquest["message"])
 
-            if source_machine_info:
-                # winrm shell was initialized by a machine out of network
-                return event_winrm_rquest
-            else:
-                # winrm was started by a machine within network
-                # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
+        if source_machine_info:
+            # winrm shell was initialized by a machine out of network
+            return event_winrm_rquest
+        else:
+            # winrm was started by a machine within network
+            # so looking for event id 6 with process name "WSMan API Initialize" wich occured 0..1 min before 91
 
-                timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
-                timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                search_query = {
-                    "bool":{
-                        "must":[
-                            {"match":{"event.code": "6"}},
-                            #{"match":{"event.action":"WSMan API Initialize"}}
-                        ],
-                        "filter":[
-                            {"range":{
-                                "@timestamp":{
-                                    "gte":event_winrm_rquest["@timestamp"],
-                                    "lte":timestamp,
-                                }
-                            }}
-                        ]
-                    }
+            # timestamp = datetime.strptime(event_winrm_rquest["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ") + timedelta(minutes=1)
+            # timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            search_query = {
+                "bool":{
+                    "must":[
+                        {"match":{"event.code": "6"}},
+                        #{"match":{"event.action":"WSMan API Initialize"}}
+                    ],
+                    # "filter":[
+                    #     {"range":{
+                    #         "@timestamp":{
+                    #             "gte":timestamp_delta(event_winrm_rquest["@timestamp"],minutes=1),
+                    #             "lte":event_winrm_rquest["@timestamp"],
+                    #         }
+                    #     }}
+                    # ]
                 }
+            }
 
-                event_wsman_init = event_searching(query=search_query)
+            event_wsman_init = event_searching(es,query=search_query)
 
-                if event_wsman_init:
-                    return event_wsman_init
-                else:
-                    print("No WSMan session Initialize event")
-                    return None
+            if event_wsman_init:
+                return event_wsman_init
+            else:
+                return None
 
     else:
-        print("No WinRM connections with this Paremeters\n")
         return None
 
 def SSH_connections(user=None,ip_source=None,timestamp=None,all=False):
@@ -323,8 +338,6 @@ def PSSMBexec_connections(user=None,ip_source=None,timestamp=None,all=False):
                 #"gte":min_timestamp,
             }
         }})
-
-
     events_sercice_installed = event_searching(query=search_query,all=True)
     returned_event = None
     returned_events = []
@@ -445,7 +458,7 @@ def WMI_events_checks(event_epmap):
         return event_4624
     else:
         print("[X] No event 3 but there is 4624 events")
-        print_event(event_4624) # if there was a problem print event 4624 
+        print_machine_infos(event_4624) # if there was a problem print event 4624 
         return None
 
 def WMI_connections(user=None,ip_source=None,timestamp=None,all=False):
@@ -483,7 +496,7 @@ def WMI_connections(user=None,ip_source=None,timestamp=None,all=False):
     event_epmap = event_searching(query=search_query,all=all)
     results_events = []
     # if epmap exist we look for 4624 forward and event id 3 backward by 5 seconds range and comparing source port from two events
-    if all:
+    if all and event_epmap:
         for event in event_epmap:
             rst = WMI_events_checks(event)
             if rst:
@@ -595,22 +608,114 @@ def patient_zero(user=None,ip_source=None,timestamp=None):
                 target_user = event["winlog"]["user"]["name"] # take a username who caused the event from winrm event
         else:
             source_ip = event["source"]["ip"] # source ip address of the source machine
-            target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
-
-        #@timestamp of the event    
+            #target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
+            target_user = None
+        #@timestamp of the event 
         starting_time = event["@timestamp"]
         past_event=event
 
     return past_event
     
-def pzero_revealer(user=None,ip_source=None,timestamp=None):
+def entries(user=None,ip_source=None,timestamp=None,all=False):
 
     assert user or ip_source
 
-    logon_events = []
-    logon_events.append(RDP_connections(user=user,all=True))
-    logon_events.append(W)
-    print(logon_events)
+    event = RDP_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=all)
+    if event:
+        logon_events = event
+    event = WinRM_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=all)
+    if logon_events and event:
+        logon_events.extend(event)
+    elif event:
+        logon_events=event
+    event = SSH_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=all)
+    if logon_events and event:
+        logon_events.extend(event)
+    elif event:
+        logon_events=event
+
+    return logon_events
+
+def extract_infos(event):
+    event__code = event["event"]["code"]
+    username = None
+    ip_source = None
+    timestamp = None
+    if event__code == "4624":
+        username = event["user"]["name"]
+        ip_source = event["source"]["ip"]
+        timestamp = event["@timestamp"]
+    elif event__code == "4":
+        message = event["message"]
+        frm_idx = message.index(" from")
+        prt_idx = message.index(" port")
+        username = message[28,frm_idx]
+        ip_source = message[frm_idx:prt_idx]
+        timestamp = event = event["@timestamp"]
+    elif event__code in ["91","6"] :
+        username = event["winlog"]["user"]["name"]
+        ip_source = event["message"].split("clientIP: ")[1][:-1] if re.search(r'clientIP:',event["message"]) else event["host"]["ip"][1]
+        timestamp = event["@timestamp"]
+
+    return username,ip_source,timestamp
+
+def pzero_revealer(entry_event):
+    event = entry_event
+    target_user,source_ip,starting_time = extract_infos(event)
+    past_event = None
+    events=list()
+    while event:
+        event = RDP_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+        if event == None:
+            # RDP connection event
+            event = WinRM_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+            
+            if event == None:
+                event = SSH_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                if event:
+                    message = event["message"]
+                    frm_idx = message.index(" from")
+                    prt_idx = message.index(" port")
+
+                    target_user = message[28,frm_idx]
+                    source_ip = message[frm_idx:prt_idx]
+                else:
+                    # psexec and smbexec detection
+                    event = PSSMBexec_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                    if event:
+                        source_ip =event["source"]["ip"]
+                        target_user = event["winlog"]["event_data"]["TargetUserName"]
+                    else:
+                        event = WMI_connections(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                        if event:
+                            source_ip =event["source"]["ip"]
+                            target_user = event["winlog"]["event_data"]["TargetUserName"]
+                        else:
+                            event = Interactive_login(user=target_user,ip_source=source_ip,timestamp=starting_time)
+                            if event:
+                                source_ip =event["source"]["ip"]
+                                target_user = event["winlog"]["event_data"]["TargetUserName"]
+                            else:
+                                break
+            else:
+                # condition to recover the source machine 
+                if event["event"]["code"] == "91":
+                    source_ip = event["message"].split("clientIP: ")[1][:-1]
+    
+                target_user = event["winlog"]["user"]["name"] # take a username who caused the event from winrm event
+        else:
+            source_ip = event["source"]["ip"] # source ip address of the source machine
+            target_user = event["winlog"]["event_data"]["TargetUserName"] # username of rdp event
+        #@timestamp of the event 
+        starting_time = event["@timestamp"]
+        if event:
+            events.append(event) 
+        
+        print_machine_infos(event=event)
+
+    return events
+
+
 
 if __name__ == "__main__":
 
@@ -628,5 +733,28 @@ if __name__ == "__main__":
     #analyzing events
     # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
     # print_event(event)
-    print(WinRM_connections(user=user,all=True))
-    print("DONE ")
+    events = entries(user=user,ip_source=ip_source,timestamp=timestamp,all=True)
+    # list of series of events that represent the attack path from patien zero for each timerange
+    attacker_paths = list() 
+    # remove duplicated events
+    seens_id = set()
+    events = [evt for evt in events if (evt["event"]["code"],evt["agent"]["ephemeral_id"]) not in seens_id and not seens_id.add((evt["event"]["code"],evt["agent"]["ephemeral_id"])) ]
+    events.sort(key=lambda x: datetime.strptime(x["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ"),reverse=True)
+    # list all events and get where is the patient zero for each timeline
+    print("===================: patient zero detection :===================")
+    for i in range(len(events)):
+        print_machine_infos(event=events[i])
+        attacker_paths = pzero_revealer(entry_event=events[i])
+        for event in attacker_paths:
+            print_machine_infos(event=event)
+            if event in events[i+1:]:
+                events.pop(i)
+
+        print("="*128)
+        
+
+        
+
+    #print_machine_infos(WinRM_connections(user=user))
+
+    print("DONE ")  
