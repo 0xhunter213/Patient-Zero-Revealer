@@ -1,10 +1,10 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch,ConnectionError
 from decouple import config
 from datetime import datetime, timedelta
 import re
 import argparse
-from elasticsearch_dsl import search
-from functools import cmp_to_key    
+import pyfiglet
+
 # Import Deployment Secret keys
  
 ELASTIC_PASSWORD = config("ELASTIC_PASSWORD")
@@ -21,7 +21,6 @@ def event_searching(es=es,query={},sort={"@timestamp":{"order":"desc"}},all=Fals
         if r["hits"]["total"]["value"] != 0:
             if all:
                 # return all the events 
-                print("array returned")
                 events = [evt["_source"] for evt in r["hits"]["hits"]] # return only _source item from each event in the list
                 return events
             # return only the last events
@@ -38,7 +37,6 @@ def print_machine_infos(event):
     try:
         # get the event id to define the structre of the event
         event__code = event["event"]["code"]
-        print("id",event__code)
         if event__code == "4624" and event["winlog"]["event_data"]["LogonType"] in ["10","7"]:
             print(f'''
                     RDP Connection:
@@ -52,7 +50,7 @@ def print_machine_infos(event):
                     Source Domain           : {event["source"]["domain"]}\n\
                     Ip Address Source       : {event["source"]["ip"]}\n\
                     Channel                 : {event["event"]["provider"]}\n\
-''')
+            ''')
         elif event__code == "4624":
             print(f'''
                     Interactive Logon:
@@ -66,7 +64,7 @@ def print_machine_infos(event):
                     Source Domain           : {event["source"]["domain"]}\n\
                     Ip Address Source       : {event["source"]["ip"]}\n\
                     Channel                 : {event["event"]["provider"]}\n\
-''')
+            ''')
         elif event__code in ["91","6"]:
             print(f'''
                     WinRM Connection:
@@ -94,9 +92,23 @@ def print_machine_infos(event):
             ''')
         
         # more events ? ...
-
     except Exception:
         print(event)
+
+def print_events(events):
+    """
+    printing each event from a list in readable format
+    """
+    for evt in events:
+        print_machine_infos(event=evt)
+
+def header(title):
+    r = (124 - len(title))
+    pad = r//2
+    if r%2==0:
+        print("="*pad+": "+title+" :"+"="*pad)
+    else:
+        print("="*pad+": "+title+" :"+"="*pad+1)
 
 def RDP_connections(user=None,ip_source=None,timestamp=None,all=False):
     '''
@@ -458,7 +470,6 @@ def WMI_events_checks(event_epmap):
         return event_4624
     else:
         print("[X] No event 3 but there is 4624 events")
-        print_machine_infos(event_4624) # if there was a problem print event 4624 
         return None
 
 def WMI_connections(user=None,ip_source=None,timestamp=None,all=False):
@@ -709,52 +720,97 @@ def pzero_revealer(entry_event):
         #@timestamp of the event 
         starting_time = event["@timestamp"]
         if event:
+            print_machine_infos(event=event)
             events.append(event) 
-        
-        print_machine_infos(event=event)
-
     return events
 
 
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
+    text = "PZero"
+  # You can specify a
+    ascii_art = pyfiglet.figlet_format(text=text,font = "banner3-D")
+    print('')
+    print(ascii_art)
     # cli configuration arguments and options for tool usage
-    parser = argparse.ArgumentParser(description="Patient Zero Revealer a tool to detect first infected machine\
-                            in the netwrok using Windows Event logs")
+    parser = argparse.ArgumentParser(description="Patient Zero Revealer a tool to detect first infected machine \
+    in the netwrok using Windows Event logs \n using one of those informations is required (USER or IP_SOURCE)")
+
     parser.add_argument("-u","--user",help="Username of a suspicious user in the network",action="store",required=True)
     parser.add_argument("-i","--ip-source",help="Ip address from Network of a machine to follow its events",action="store")
-    parser.add_argument("-t","--timestamp",help="start time for analysing events",action="store")
+    parser.add_argument("-t","--timestamp",help="Start time for analysing events",action="store")
+    parser.add_argument("-r","--rdp",help="Analyzing only RDP connections",action="store_true")
+    parser.add_argument("-s","--ssh",help="Analyzing only ssh connections",action="store_true")
+    parser.add_argument("-w","--winrm",help="Analyzing only WinRM connections",action="store_true")
+    parser.add_argument("-I","--impackt",help="Analyzing Impacket tools use cases from events (psexec,smbexec,wmiexec,...)",action="store_true")
+    parser.add_argument("-Ip","--psexec",help="detect of Impacket psexec tools from event",action="store_true")
+    parser.add_argument("-Is","--smbexec",help="detect of Impacket smbexec tools from event",action="store_true")
+    parser.add_argument("-Iw","--wmiexec",help="detect of Impacket wmiexec tools from event",action="store_true")
+    
+
     args = parser.parse_args()
     user = args.user # username required
     ip_source = args.ip_source # ip source of a machine
     timestamp = args.timestamp
     timestamp = datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S.%fZ") if timestamp else None 
+    rdp = args.rdp
+    ssh = args.ssh
+    winrm = args.winrm
+    impacket = args.impackt
+    psexec = args.psexec
+    smbexec = args.smbexec
+    wmiexec = args.wmiexec
     #analyzing events
-    # event = patient_zero(user=user,ip_source=ip_source,timestamp=timestamp)
-    # print_event(event)
-    events = entries(user=user,ip_source=ip_source,timestamp=timestamp,all=True)
-    # list of series of events that represent the attack path from patien zero for each timerange
-    attacker_paths = list() 
-    # remove duplicated events
-    seens_id = set()
-    events = [evt for evt in events if (evt["event"]["code"],evt["agent"]["ephemeral_id"]) not in seens_id and not seens_id.add((evt["event"]["code"],evt["agent"]["ephemeral_id"])) ]
-    events.sort(key=lambda x: datetime.strptime(x["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ"),reverse=True)
-    # list all events and get where is the patient zero for each timeline
-    print("===================: patient zero detection :===================")
-    for i in range(len(events)):
-        print_machine_infos(event=events[i])
-        attacker_paths = pzero_revealer(entry_event=events[i])
-        for event in attacker_paths:
-            print_machine_infos(event=event)
-            if event in events[i+1:]:
-                events.pop(i)
+    try:
+        if rdp:
+            header("RDP connections")
+            print_events(RDP_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128)
+        
+        if ssh:
+            header("SSH connections")
+            print_events(SSH_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128)
+        if winrm:
+            header("WinRM connections")
+            print_events(WinRM_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128)        
+        
+        if impacket:
+            header("events caused by Impacket")
+            print_events(PSSMBexec_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print_events(WMI_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128) 
+        elif psexec:
+            header("PSexec events")
+            print_events(PSSMBexec_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128) 
+        elif wmiexec:
+            header("WMIexec events")
+            print_events(WMI_connections(user=user,ip_source=ip_source,timestamp=timestamp,all=True))
+            print("="*128)
 
+        if not any([rdp,ssh,winrm,impacket,psexec,wmiexec]):
+            # list all events and get where is the patient zero for each timeline
+            header("Detection patient zero")
+            events = entries(user=user,ip_source=ip_source,timestamp=timestamp,all=True)
+            
+            # list of series of events that represent the attack path from patien zero for each timerange
+            attacker_paths = list() 
+            
+            # remove duplicated events
+            seens_id = set()
+            events = [evt for evt in events if (evt["event"]["code"],evt["agent"]["ephemeral_id"]) not in seens_id and not seens_id.add((evt["event"]["code"],evt["agent"]["ephemeral_id"])) ]
+            events.sort(key=lambda x: datetime.strptime(x["@timestamp"],"%Y-%m-%dT%H:%M:%S.%fZ"),reverse=True)
+            
+            for i in range(len(events)):
+                print_machine_infos(event=events[i])
+                attacker_paths = pzero_revealer(entry_event=events[i])
+                for event in attacker_paths:
+                    if event in events[i+1:]:
+                        events.pop(i)
+                print("="*128)
+    except ConnectionError:
+        print("[x] Elasticsearch Connection Error")
         print("="*128)
-        
-
-        
-
-    #print_machine_infos(WinRM_connections(user=user))
-
-    print("DONE ")  
