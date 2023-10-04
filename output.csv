@@ -1,0 +1,2 @@
+Section,Timestamp,Id,Username,Domaine,Host Name,Ip Address Host (IPV4),Ip Address Host (IPV6),Source Domain,Ip Address Source,Channel
+WinRM Connection,2023-09-24T10:46:47.366Z,S-1-5-21-2677277833-2011150043-3241139831-1002,user-pc1,MACHINE1,machine1,192.168.11.29,fe80::5433:562d:e7a7:166,,,Microsoft-Windows-WinRM
